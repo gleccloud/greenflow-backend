@@ -36,7 +36,7 @@ function Header() {
   return (
     <div className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur">
       <Container className="flex h-16 items-center justify-between">
-        <Link to="/shipper" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-400 text-white shadow-soft">
             <Leaf className="h-5 w-5" />
           </div>

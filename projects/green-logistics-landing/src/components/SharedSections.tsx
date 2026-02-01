@@ -267,7 +267,8 @@ export function Impact() {
             <div className="mt-4 space-y-3">
               <DarkCheck text="ISO-14083 기반 산정/보고" />
               <DarkCheck text="산식/근거 데이터/버전 관리" />
-              <DarkCheck text="카본 타코그래프 실측(옵션)" />
+              <DarkCheck text="데이터 출처 등급: 1등급(실측) / 2등급(모델링)" />
+              <DarkCheck text="ISO-14083 기술 탑재 카본 타코그래프 실측(옵션)" />
               <DarkCheck text="권한·승인·감사 로그" />
               <DarkCheck text="오더 단위 증빙/정산 표준화" />
             </div>
@@ -428,7 +429,7 @@ export function FAQ() {
     },
     {
       q: "실측 기반(카본 타코그래프)도 지원하나요?",
-      a: "옵션입니다. 실측 데이터가 있는 Fleet/차량은 ‘실측’ 배지를 통해 신뢰도를 높이고, 그린라벨 오더 등 프리미엄 매칭에 활용할 수 있습니다.",
+      a: "옵션입니다. ISO-14083 국제인증 기술이 탑재된 카본 타코그래프 등으로 수집된 실측 데이터는 보고/공개에서 1등급으로 표시할 수 있고, 모델링 기반 데이터는 2등급으로 표시해 출처 투명성을 보장합니다.",
     },
     {
       q: "기존 TMS/ERP/WMS가 있는데 교체해야 하나요?",
