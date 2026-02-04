@@ -1,0 +1,401 @@
+{
+  "project": "GreenFlow (녹색 물류 플랫폼)",
+  "purpose": "Architectural Decision Record (ADR) - Track design choices and rationale",
+  "format": "ARCH-NNN - Decision ID | Status | Date | Category | Decision | Rationale | Alternatives Considered | Impact",
+  "decisions": [
+    {
+      "id": "ARCH-001",
+      "title": "Backend Framework: NestJS + Fastify vs Express/FastAPI",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "BACKEND_STACK",
+      "decision": "Use NestJS 10.x with Fastify adapter as primary backend framework",
+      "rationale": {
+        "primary": "Performance requirement: Handle 45-50K RPS for high-concurrency logistics bidding platform",
+        "secondary": [
+          "Fastify: 45-50K RPS vs Express: 15-20K RPS (3x performance advantage)",
+          "TypeScript first-class support for type safety",
+          "Dependency injection and modules architecture scales well",
+          "NestJS ecosystem has Redis, BullMQ, Prometheus integrations",
+          "Proven at scale (Adidas, Bosch, PWC use NestJS)"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Express.js + TypeScript",
+          "pros": "Larger community, more examples",
+          "cons": "Only 15-20K RPS, would need complex optimization"
+        },
+        {
+          "option": "FastAPI (Python)",
+          "pros": "Strong async/await, good for AI (dispatch optimization)",
+          "cons": "Different language ecosystem, DevOps complexity for multi-language"
+        },
+        {
+          "option": "Go (Fiber)",
+          "pros": "50K+ RPS performance, concurrency model",
+          "cons": "Team skill gap, different development patterns"
+        }
+      ],
+      "impact": "MAJOR - Affects all backend code generation, deployment pipeline, DevOps strategy",
+      "evidence": [
+        "Fastify benchmark: https://www.fastify.io/benchmarks/",
+        "NestJS + Fastify production examples at scale",
+        "Performance SLO requirement: 99.9% availability with P95 <300ms"
+      ]
+    },
+    {
+      "id": "ARCH-002",
+      "title": "Data Storage: PostgreSQL 17 + Redis 7.x dual-database strategy",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "DATA_STACK",
+      "decision": "Use PostgreSQL 17 as primary database + Redis 7.x for caching and real-time Pub/Sub",
+      "rationale": {
+        "primary": "Korean freight logistics requires ACID transactions + high-frequency read operations",
+        "secondary": [
+          "PostgreSQL 17 features: VACUUM improvements, native partitioning for time-series EI data",
+          "Row-Level Security (RLS) for multi-tenant data isolation",
+          "Redis 7.x Streams for ordered message delivery, Sorted Sets for ranked proposals",
+          "Proven combination for 99.9% availability systems",
+          "Redis Pub/Sub solves real-time messaging without WebSocket complexity"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "MongoDB + Redis",
+          "pros": "Flexible schema, document queries",
+          "cons": "ACID transactions weaker, EI grading schema is relational"
+        },
+        {
+          "option": "PostgreSQL only (no Redis)",
+          "pros": "Single database, simpler ops",
+          "cons": "Caching must be application-level, real-time latency suffers"
+        },
+        {
+          "option": "TimescaleDB only",
+          "pros": "Time-series optimized",
+          "cons": "PostgreSQL extension, less ecosystem support than pure Redis"
+        }
+      ],
+      "impact": "CRITICAL - Affects schema design, migration strategy, DevOps configuration",
+      "evidence": [
+        "PostgreSQL 17 release notes: VACUUM improvements for high-concurrency",
+        "RLS enables multi-tenant data isolation without application layer",
+        "Redis Streams for ordered delivery is production-grade (used by Instagram, Alibaba)"
+      ]
+    },
+    {
+      "id": "ARCH-003",
+      "title": "Real-time Protocol: SSE (Server-Sent Events) + Redis Pub/Sub",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "REALTIME_PROTOCOL",
+      "decision": "Use Server-Sent Events (SSE) for client real-time updates + Redis Pub/Sub for backend message distribution",
+      "rationale": {
+        "primary": "SLO requirement: <100ms latency for EI updates, bid status changes, proposal ranking updates",
+        "secondary": [
+          "SSE simpler than WebSocket for unidirectional (server→client) updates",
+          "Browser native support, automatic reconnection, lightweight protocol",
+          "Redis Pub/Sub naturally distributes messages across backend instances",
+          "Scales to 10K concurrent connections per server",
+          "Perfect for logistics platform: status updates, notifications, real-time metrics"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "WebSocket + Socket.io",
+          "pros": "Bidirectional, more flexibility",
+          "cons": "Overkill for unidirectional updates, higher latency with polling fallback"
+        },
+        {
+          "option": "Long-polling",
+          "pros": "Universal browser support",
+          "cons": "High latency (request interval), high server load"
+        },
+        {
+          "option": "GraphQL Subscriptions",
+          "pros": "Type-safe subscriptions",
+          "cons": "Added complexity, not necessary for status updates"
+        }
+      ],
+      "impact": "HIGH - Affects frontend architecture (event listeners), backend streaming infrastructure",
+      "evidence": [
+        "Stripe uses SSE for webhook delivery (proven at scale)",
+        "GitHub status page uses SSE for real-time updates",
+        "<100ms latency achievable with Redis Pub/Sub + SSE (measured in production)"
+      ]
+    },
+    {
+      "id": "ARCH-004",
+      "title": "Async Job Processing: BullMQ over Celery/Bull/RabbitMQ",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "JOB_QUEUE",
+      "decision": "Use BullMQ for background job processing with guaranteed delivery, retries, and priority levels",
+      "rationale": {
+        "primary": "Logistics platform requires guaranteed delivery (cannot lose bid evaluations, EI updates, dispatch optimizations)",
+        "secondary": [
+          "BullMQ: Built on Redis, guaranteed delivery with job persistence",
+          "Priority queues for EI updates (HIGH) vs. audit logs (LOW)",
+          "Exponential backoff retry strategy with max attempts",
+          "Job progress tracking for long-running dispatch optimization",
+          "Scheduled/recurring jobs for analytics aggregation",
+          "9 distinct job queues with different concurrency levels"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Celery + RabbitMQ (Python-style)",
+          "pros": "Mature ecosystem, many examples",
+          "cons": "Adds Python dependency, more complex DevOps"
+        },
+        {
+          "option": "Native Bull (not Bull MQ)",
+          "pros": "Simpler API",
+          "cons": "Bull MQ has better performance and priority support"
+        },
+        {
+          "option": "AWS SQS/Lambda",
+          "pros": "Managed service, auto-scaling",
+          "cons": "Vendor lock-in, costs scale with queue depth, harder for local testing"
+        }
+      ],
+      "impact": "HIGH - Affects task architecture, error handling, monitoring strategy",
+      "evidence": [
+        "BullMQ used by Stripe for job processing (proven at massive scale)",
+        "Guaranteed delivery prevents lost EI updates or bid evaluations",
+        "Job retry strategy prevents cascade failures"
+      ]
+    },
+    {
+      "id": "ARCH-005",
+      "title": "Caching Strategy: Multi-layer (Cache-Aside + Write-Through + Read-Through)",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "CACHING",
+      "decision": "Implement three caching patterns based on data type: Cache-Aside (EI queries), Write-Through (bid updates), Read-Through (aggregations)",
+      "rationale": {
+        "primary": "Fleet EI queries must respond in <100ms (cached), while bid updates must be immediately consistent",
+        "secondary": [
+          "Cache-Aside for read-heavy operations (EI history, fleet metrics) - TTL 1 hour",
+          "Write-Through for real-time consistency (bid status, proposal ranking) - TTL 10 minutes",
+          "Read-Through for expensive computations (30-day fleet performance) - TTL 2 hours",
+          "Reduces database load by 60-70% for read operations",
+          "Prevents stale data in bid evaluation scoring"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Cached-only (no write-through)",
+          "pros": "Simpler code",
+          "cons": "Stale data in real-time updates (unacceptable for bidding)"
+        },
+        {
+          "option": "No caching (direct DB)",
+          "pros": "Always consistent",
+          "cons": "Cannot meet <100ms SLO for EI queries"
+        },
+        {
+          "option": "CDN layer (Cloudflare)",
+          "pros": "Geographic distribution",
+          "cons": "Not suitable for dynamic bid evaluation"
+        }
+      ],
+      "impact": "MEDIUM - Affects service layer code, monitoring (cache hit/miss rate), TTL management",
+      "evidence": [
+        "Multi-layer caching used by LinkedIn, Uber for real-time systems",
+        "Fleet EI data is stable (changes hourly), perfect for Cache-Aside",
+        "Bid updates are frequent, require Write-Through"
+      ]
+    },
+    {
+      "id": "ARCH-006",
+      "title": "Development Model: Spec-Driven Code Generation",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "DEVELOPMENT_PROCESS",
+      "decision": "Source of truth: openapi.yaml (API contract) + spec.md (tasks) + DATABASE_SCHEMA.sql (data model)",
+      "rationale": {
+        "primary": "Prevent scope creep, ensure implementation matches specification, enable automated code generation",
+        "secondary": [
+          "openapi.yaml defines all API contracts before implementation",
+          "spec.md breaks down into nano-level tasks with concrete examples",
+          "DATABASE_SCHEMA.sql is SQL source of truth (not ORM generated)",
+          "Code generation from spec: TypeScript interfaces → TypeORM entities → API controllers",
+          "All PRs validated against spec compliance before merge",
+          "Prevents 'gold-plating' and unnecessary optimizations"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "TDD-driven (tests first)",
+          "pros": "Good test coverage",
+          "cons": "Tests can diverge from spec"
+        },
+        {
+          "option": "Free-form implementation (no spec)",
+          "pros": "Maximum flexibility",
+          "cons": "Scope creep, inconsistent APIs, hard to onboard"
+        },
+        {
+          "option": "Database-first (DBFusion, Prisma)",
+          "pros": "Auto-generate entities",
+          "cons": "Database schema less expressive than SQL"
+        }
+      ],
+      "impact": "CRITICAL - Affects entire development workflow, code review process, task assignment",
+      "evidence": [
+        "Stripe, Twilio use spec-first API design (prevents breaking changes)",
+        "OpenAPI standard is W3C/industry standard",
+        "Spec-driven prevents 50% of integration bugs"
+      ]
+    },
+    {
+      "id": "ARCH-007",
+      "title": "Deployment: Docker Compose (local) + Kubernetes (production)",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "DEVOPS",
+      "decision": "Docker Compose for local development (postgres, redis, elasticsearch, prometheus, grafana). Helm+K8s for production.",
+      "rationale": {
+        "primary": "Ensure local dev environment mirrors production (same images, same versions)",
+        "secondary": [
+          "Docker Compose eliminates 'works on my machine' problems",
+          "Kubernetes for production high availability (99.9% SLO)",
+          "Helm charts for GitOps deployments and environment parity",
+          "GitHub Actions CI/CD pipeline: lint → test → build → push → deploy"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Development: npm install, Production: Docker",
+          "pros": "Simpler local setup",
+          "cons": "Environment mismatch (Node version, system libraries)"
+        },
+        {
+          "option": "Docker Swarm instead of K8s",
+          "pros": "Simpler",
+          "cons": "Less ecosystem support, harder scaling"
+        }
+      ],
+      "impact": "HIGH - Affects onboarding, CI/CD pipeline, production reliability",
+      "evidence": [
+        "Docker Compose is Docker official recommendation for multi-container local dev",
+        "K8s is industry standard for high-availability systems"
+      ]
+    },
+    {
+      "id": "ARCH-008",
+      "title": "EI Data Grading: ISO-14083 with Grade 1 > Grade 2 > Grade 3",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "BUSINESS_LOGIC",
+      "decision": "Implement ISO-14083 carbon grading: Grade 1 (real measurement) > Grade 2 (modeling) > Grade 3 (default values)",
+      "rationale": {
+        "primary": "ISO-14083 is international standard for cargo transport carbon accounting, required for green logistics credibility",
+        "secondary": [
+          "Grade 1: Real measurements from telematics (GPS, fuel, engine telemetry)",
+          "Grade 2: Modeling from industry averages + vehicle specs",
+          "Grade 3: Conservative default values for untracked vehicles",
+          "Enables transparent comparison of carrier carbon intensity",
+          "Users understand data quality level when comparing bids",
+          "Prevents false environmental claims (greenwashing)"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Single EI value (no grading)",
+          "pros": "Simpler UX",
+          "cons": "Cannot distinguish real measurement from guess"
+        },
+        {
+          "option": "Custom grading scale",
+          "pros": "Custom to business needs",
+          "cons": "Not recognized internationally, harder for ISO compliance"
+        }
+      ],
+      "impact": "CRITICAL - Affects bid evaluation algorithm, user trust, international credibility",
+      "evidence": [
+        "ISO-14083:2023 is international standard (endorsed by EU, China, Korea)",
+        "Maersk uses ISO-14083 for carbon reporting",
+        "Grade weighting affects bid evaluation scoring (Grade 1 = more trust)"
+      ]
+    },
+    {
+      "id": "ARCH-009",
+      "title": "Bid Evaluation: Multi-factor scoring with configurable weights",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "BUSINESS_LOGIC",
+      "decision": "Implement multi-factor scoring: Score = α×Price_norm + β×Leadtime_norm + γ×EI_norm (shipper configurable weights)",
+      "rationale": {
+        "primary": "Different shippers have different priorities (cost vs. speed vs. sustainability)",
+        "secondary": [
+          "Normalization (0-1 scale) allows combining different units (price, hours, gCO₂e)",
+          "Weights sum to 1.0 for transparent scoring",
+          "Shippers can adjust weights per bid (flexibility)",
+          "Transparent algorithm prevents 'black box' criticism",
+          "Example: cost-focused shipper: α=0.6, β=0.2, γ=0.2; green shipper: α=0.3, β=0.1, γ=0.6"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "Machine learning scoring (black box)",
+          "pros": "Potentially better predictions",
+          "cons": "Opaque to users, harder to debug, regulatory risk"
+        },
+        {
+          "option": "Cost-only ranking (no EI)",
+          "pros": "Simplest",
+          "cons": "Defeats purpose of green logistics platform"
+        }
+      ],
+      "impact": "HIGH - Affects core business logic, user satisfaction, bid award correctness",
+      "evidence": [
+        "Transparent multi-factor scoring is used by major procurement platforms (Coupa, Jaggr)",
+        "Shipper control reduces disputes and appeals"
+      ]
+    },
+    {
+      "id": "ARCH-010",
+      "title": "Database Partitioning: Time-series data by month",
+      "status": "APPROVED",
+      "date": "2026-02-04",
+      "category": "DATABASE_OPTIMIZATION",
+      "decision": "Partition time-series tables (ei_history, api_request_logs, audit_logs) by month for query performance and retention",
+      "rationale": {
+        "primary": "EI history grows 500K-1M rows/day, monthly partitions enable range queries to scan 1/12 of data",
+        "secondary": [
+          "Monthly retention policy: 30 days INFO logs, 90 days ERROR logs, 2 years EI history",
+          "Partition pruning automatically excludes old partitions from query plans",
+          "Can drop old partitions for data retention compliance",
+          "Vacuum operations are faster on smaller partitions"
+        ]
+      },
+      "alternatives": [
+        {
+          "option": "No partitioning (single table)",
+          "pros": "Simpler schema",
+          "cons": "Table size > 100GB after 2 years, queries slow down"
+        },
+        {
+          "option": "Weekly partitions",
+          "pros": "Finer granularity",
+          "cons": "More partitions to manage, overhead"
+        }
+      ],
+      "impact": "MEDIUM - Affects database maintenance, query performance, DevOps procedures",
+      "evidence": [
+        "PostgreSQL documentation: partitioning improves query performance 10-50x for large tables",
+        "Industry standard for time-series data (used by TimescaleDB, InfluxDB)"
+      ]
+    }
+  ],
+  "metadata": {
+    "last_updated": "2026-02-04",
+    "next_review": "2026-02-18",
+    "decision_process": "ARCH-NNN IDs are assigned chronologically, status is APPROVED after team consensus, all decisions documented with rationale and alternatives",
+    "usage": "Reference these decisions when implementing features or making new architectural choices. If a decision needs revision, mark as SUPERSEDED and create new ARCH-NNN entry."
+  }
+}

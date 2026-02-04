@@ -189,3 +189,400 @@ The goal: Be helpful without being annoying. Check in a few times a day, do usef
 ## Make It Yours
 
 This is a starting point. Add your own conventions, style, and rules as you figure out what works.
+
+---
+
+# 🎨 Design System - Modern SaaS Landing Pages
+
+> ByteRover-inspired design system for creating premium, developer-focused landing pages.
+
+## Design Philosophy
+
+**Core Principles:**
+1. **Dark-first**: Default to dark mode with subtle light mode support
+2. **Motion-rich**: Every element should feel alive with purposeful animations
+3. **Gradient-driven**: Use dynamic gradients for depth and visual interest
+4. **Developer-focused**: Clean, technical aesthetic with premium polish
+5. **Accessibility-first**: High contrast, readable typography, semantic HTML
+
+## 🎨 Color System
+
+### Primary Palette (Dark Mode)
+```css
+:root {
+  /* Background layers */
+  --bg-primary: #0a0a0b;      /* Deepest background */
+  --bg-secondary: #111113;    /* Card backgrounds */
+  --bg-tertiary: #1a1a1d;     /* Elevated surfaces */
+  --bg-hover: #232326;        /* Interactive hover states */
+
+  /* Text hierarchy */
+  --text-primary: #fafafa;    /* Headlines, important text */
+  --text-secondary: #a1a1aa;  /* Body text, descriptions */
+  --text-muted: #71717a;      /* Captions, metadata */
+
+  /* Brand accents */
+  --accent-primary: #6366f1;  /* Indigo - primary actions */
+  --accent-secondary: #8b5cf6; /* Violet - secondary highlights */
+  --accent-success: #10b981;  /* Emerald - success states */
+  --accent-warning: #f59e0b;  /* Amber - warnings */
+
+  /* Gradient stops */
+  --gradient-start: #6366f1;
+  --gradient-mid: #8b5cf6;
+  --gradient-end: #ec4899;
+}
+```
+
+### Signature Gradients
+```css
+/* Hero gradient - animated mesh background */
+.gradient-mesh {
+  background:
+    radial-gradient(at 40% 20%, hsla(240, 80%, 65%, 0.3) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(270, 80%, 60%, 0.2) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(330, 80%, 60%, 0.15) 0px, transparent 50%),
+    var(--bg-primary);
+}
+
+/* Text gradient - for headlines */
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Button gradient */
+.gradient-button {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+}
+
+/* Border gradient (glow effect) */
+.gradient-border {
+  position: relative;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  z-index: -1;
+  opacity: 0.5;
+}
+```
+
+## 📝 Typography
+
+### Font Stack
+```css
+/* Primary - Headlines */
+--font-display: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+
+/* Secondary - Body */
+--font-body: 'Inter', 'SF Pro Text', -apple-system, sans-serif;
+
+/* Monospace - Code */
+--font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+```
+
+### Type Scale
+```css
+/* Headlines */
+.h1 { font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.h3 { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+
+/* Body */
+.body-lg { font-size: 1.125rem; line-height: 1.7; }
+.body { font-size: 1rem; line-height: 1.6; }
+.body-sm { font-size: 0.875rem; line-height: 1.5; }
+
+/* Utility */
+.caption { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+.code { font-family: var(--font-mono); font-size: 0.875em; }
+```
+
+### Text Animation Effects
+```tsx
+// Typewriter effect - for hero headlines
+import { useTypewriter } from 'react-simple-typewriter'
+
+// Decrypt/scramble effect - for tech feel
+import { useDencrypt } from 'use-dencrypt-effect'
+
+// Split text animation - for staggered reveals
+import SplitType from 'split-type'
+```
+
+## 📐 Layout & Grid
+
+### Container System
+```css
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 5vw, 2rem);
+}
+
+.container-sm { max-width: 768px; }
+.container-lg { max-width: 1536px; }
+```
+
+### Grid Patterns
+```css
+/* Bento grid - for feature sections */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Feature grid - 3 columns on desktop */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+@media (max-width: 768px) {
+  .feature-grid { grid-template-columns: 1fr; }
+}
+```
+
+### Spacing Scale
+```css
+--space-1: 0.25rem;  /* 4px */
+--space-2: 0.5rem;   /* 8px */
+--space-3: 0.75rem;  /* 12px */
+--space-4: 1rem;     /* 16px */
+--space-6: 1.5rem;   /* 24px */
+--space-8: 2rem;     /* 32px */
+--space-12: 3rem;    /* 48px */
+--space-16: 4rem;    /* 64px */
+--space-24: 6rem;    /* 96px */
+--space-32: 8rem;    /* 128px */
+```
+
+## ✨ Motion & Animation
+
+### Framer Motion Presets
+```tsx
+// Fade up - default entrance animation
+const fadeUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+}
+
+// Stagger children
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.1 } }
+}
+
+// Scale on hover
+const hoverScale = {
+  whileHover: { scale: 1.02 },
+  whileTap: { scale: 0.98 },
+  transition: { type: "spring", stiffness: 400, damping: 17 }
+}
+
+// Gradient animation
+const gradientShift = {
+  animate: {
+    backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+    transition: { duration: 5, repeat: Infinity, ease: 'linear' }
+  }
+}
+```
+
+### CSS Animation Utilities
+```css
+/* Smooth entrance */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Gradient pulse */
+@keyframes gradientPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+/* Glow effect */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.5); }
+}
+
+/* Float animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fadeUp { animation: fadeUp 0.5s ease-out forwards; }
+.animate-glow { animation: glow 2s ease-in-out infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+```
+
+### Scroll-triggered Animations
+```tsx
+import { useInView } from 'framer-motion'
+
+// Reveal on scroll
+const ScrollReveal = ({ children }) => {
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: "-100px" })
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+```
+
+## 🧩 Component Patterns
+
+### Hero Section
+```tsx
+<section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+  {/* Animated gradient background */}
+  <div className="absolute inset-0 gradient-mesh" />
+
+  {/* Floating orbs */}
+  <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-primary/20 rounded-full blur-3xl animate-float" />
+  <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent-secondary/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+
+  {/* Content */}
+  <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
+    <motion.p className="caption text-accent-primary mb-4" {...fadeUp}>
+      CONTEXT ENGINEER AGENT
+    </motion.p>
+    <motion.h1 className="h1 gradient-text mb-6" {...fadeUp} transition={{ delay: 0.1 }}>
+      Your AI Coding Agent's Memory Layer
+    </motion.h1>
+    <motion.p className="body-lg text-secondary max-w-2xl mx-auto mb-8" {...fadeUp} transition={{ delay: 0.2 }}>
+      Persistent context that makes every interaction smarter than the last.
+    </motion.p>
+    <motion.div className="flex gap-4 justify-center" {...fadeUp} transition={{ delay: 0.3 }}>
+      <Button variant="primary" size="lg">Get Started</Button>
+      <Button variant="ghost" size="lg">Learn More</Button>
+    </motion.div>
+  </div>
+</section>
+```
+
+### Feature Card
+```tsx
+<motion.div
+  className="gradient-border p-6 rounded-xl bg-secondary"
+  whileHover={{ y: -5 }}
+  transition={{ type: "spring", stiffness: 300 }}
+>
+  <div className="w-12 h-12 rounded-lg bg-accent-primary/10 flex items-center justify-center mb-4">
+    <Icon className="w-6 h-6 text-accent-primary" />
+  </div>
+  <h3 className="h3 mb-2">Feature Title</h3>
+  <p className="body text-secondary">Feature description goes here with concise, benefit-focused copy.</p>
+</motion.div>
+```
+
+### Glowing Button
+```tsx
+<button className="relative group px-6 py-3 rounded-lg font-medium overflow-hidden">
+  {/* Gradient background */}
+  <span className="absolute inset-0 gradient-button opacity-90 group-hover:opacity-100 transition-opacity" />
+
+  {/* Glow effect */}
+  <span className="absolute inset-0 gradient-button blur-xl opacity-0 group-hover:opacity-50 transition-opacity" />
+
+  {/* Text */}
+  <span className="relative z-10 text-white">Get Started</span>
+</button>
+```
+
+## 🎭 Tone & Manner
+
+### Voice Guidelines
+- **Confident but not arrogant**: "The future of coding agents" not "The BEST coding agent ever"
+- **Technical but accessible**: Use jargon sparingly, explain when needed
+- **Action-oriented**: Lead with verbs - "Build", "Create", "Transform"
+- **Benefit-focused**: Features → Benefits → Outcomes
+
+### Copy Patterns
+```
+Headlines:
+- "[Action verb] your [noun] with [benefit]"
+- "The [adjective] way to [desired outcome]"
+- "[Pain point]? Meet [solution]."
+
+Subheadlines:
+- Keep under 20 words
+- One clear benefit per line
+- End with intrigue, not period
+
+CTAs:
+- Primary: "Get Started", "Try Free", "Start Building"
+- Secondary: "Learn More", "See How", "Watch Demo"
+- Avoid: "Submit", "Click Here", "Sign Up Now"
+```
+
+### Visual Hierarchy
+1. **Hero**: One big message, maximum impact
+2. **Social proof**: Logos, stats, testimonials (subtle)
+3. **Features**: 3-6 key benefits, scannable
+4. **How it works**: 3-step process, simple
+5. **Pricing**: Clear, no hidden fees
+6. **CTA**: Repeat primary action
+
+## 🛠️ Tech Stack Recommendations
+
+### For React/Next.js Projects
+```json
+{
+  "dependencies": {
+    "framer-motion": "^11.0.0",
+    "tailwindcss": "^3.4.0",
+    "@radix-ui/react-*": "latest",
+    "lucide-react": "latest",
+    "clsx": "latest",
+    "tailwind-merge": "latest"
+  }
+}
+```
+
+### Tailwind Config Extensions
+```js
+// tailwind.config.js
+module.exports = {
+  theme: {
+    extend: {
+      colors: {
+        accent: {
+          primary: '#6366f1',
+          secondary: '#8b5cf6',
+        }
+      },
+      animation: {
+        'fade-up': 'fadeUp 0.5s ease-out',
+        'glow': 'glow 2s ease-in-out infinite',
+        'float': 'float 3s ease-in-out infinite',
+      }
+    }
+  }
+}
+```
+
+---
+
+*Design system inspired by [ByteRover](https://byterover.dev) and modern SaaS landing pages.*
