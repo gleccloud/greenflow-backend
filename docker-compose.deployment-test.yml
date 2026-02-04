@@ -1,0 +1,250 @@
+version: '3.9'
+
+# GreenFlow 배포 테스트 환경
+# LocalStack + PostgreSQL + Redis + Backend + Frontend
+# 프로덕션 배포 전 전체 시스템 테스트용
+
+services:
+  # LocalStack: AWS 서비스 에뮬레이션
+  localstack:
+    image: localstack/localstack:latest
+    container_name: greenflow-localstack
+    ports:
+      - "4566:4566"  # LocalStack 통합 엔드포인트
+      - "4571:4571"  # 대체 포트
+    environment:
+      # 활성화할 AWS 서비스
+      SERVICES: s3,sqs,sns,lambda,rds,elasticache,cloudwatch,cloudformation
+      DEBUG: 1
+      DATA_DIR: /tmp/localstack/data
+      AWS_REGION: us-east-1
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      - localstack-data:/tmp/localstack/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/localstack-init.sh:/docker-entrypoint-initaws.d/init-aws.sh:ro
+    healthcheck:
+      test:
+        - CMD
+        - awslocal
+        - kinesis
+        - list-streams
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - greenflow-network
+
+  # PostgreSQL: 주 데이터베이스
+  postgres:
+    image: postgres:17-alpine
+    container_name: greenflow-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: glec_dev
+      POSTGRES_USER: glec_user
+      POSTGRES_PASSWORD: glec_pass
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=pgvector"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U glec_user -d glec_dev
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - greenflow-network
+
+  # Redis: 캐시 & 실시간 Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: greenflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - greenflow-network
+
+  # 백엔드 API (NestJS)
+  backend:
+    build:
+      context: ./projects/glec-api-backend
+      dockerfile: Dockerfile
+    container_name: greenflow-backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+    environment:
+      # Node.js
+      NODE_ENV: test
+      LOG_LEVEL: debug
+
+      # 데이터베이스
+      DATABASE_URL: postgres://glec_user:glec_pass@postgres:5432/glec_dev
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_NAME: glec_dev
+      DATABASE_USER: glec_user
+      DATABASE_PASSWORD: glec_pass
+
+      # Redis
+      REDIS_URL: redis://redis:6379
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # AWS / LocalStack
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      LOCALSTACK_ENABLED: "true"
+
+      # 서비스 구성
+      API_PORT: 3000
+      API_PREFIX: /api/v2
+      CORS_ORIGIN: http://localhost:5173
+
+      # JWT
+      JWT_SECRET: test-jwt-secret-key-change-in-production
+      JWT_EXPIRY: 24h
+
+    volumes:
+      - ./projects/glec-api-backend/src:/app/src
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/api/v2/health
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - greenflow-network
+    restart: unless-stopped
+
+  # 프론트엔드 (React + Vite)
+  frontend:
+    build:
+      context: ./projects/green-logistics-landing
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:3000/api/v2
+    container_name: greenflow-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Vite 설정
+      VITE_API_BASE_URL: http://backend:3000/api/v2
+      VITE_ENV: test
+      NODE_ENV: development
+
+    volumes:
+      - ./projects/green-logistics-landing/src:/app/src
+      - ./projects/green-logistics-landing/index.html:/app/index.html
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:5173
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - greenflow-network
+    restart: unless-stopped
+
+  # Prometheus: 메트릭 수집 (선택사항)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: greenflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    depends_on:
+      - backend
+    networks:
+      - greenflow-network
+    restart: unless-stopped
+
+  # Grafana: 대시보드 (선택사항)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: greenflow-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - greenflow-network
+    restart: unless-stopped
+
+  # pgAdmin: PostgreSQL 웹 관리 (선택사항)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: greenflow-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@greenflow.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - greenflow-network
+    restart: unless-stopped
+
+volumes:
+  localstack-data:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+networks:
+  greenflow-network:
+    driver: bridge
