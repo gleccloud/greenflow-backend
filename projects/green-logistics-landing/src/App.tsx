@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import { Layout } from "./components/Layout";
 import { DashboardLayout } from "./components/DashboardLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -15,7 +16,8 @@ import OwnerDashboard from "./pages/dashboards/OwnerDashboard";
 
 export default function App() {
   return (
-    <AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
       <Routes>
         {/* Landing Pages */}
         <Route element={<Layout />}>
@@ -45,6 +47,7 @@ export default function App() {
         {/* Catch All */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </AuthProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 }
