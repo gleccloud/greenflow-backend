@@ -78,6 +78,76 @@ openclaw-workspace/
 
 ---
 
+## 🐳 LocalStack Integration (NEW - 2026-02-04)
+
+### Purpose
+
+LocalStack enables **local AWS service emulation** for development and testing. No more AWS charges for development environments!
+
+### Quick Start
+
+```bash
+# One-command setup
+./scripts/setup-localstack.sh
+
+# Services started automatically:
+# - PostgreSQL RDS (localhost:5432)
+# - Redis/ElastiCache (localhost:6379)
+# - SQS, SNS, Lambda, S3, CloudFormation
+```
+
+### Key Benefits for GreenFlow
+
+✅ **Free local development** - No AWS charges
+✅ **Fast iteration** - Services start in seconds
+✅ **Integration testing** - Full RDS + Redis + SQS testing
+✅ **CI/CD ready** - GitHub Actions integration included
+✅ **Offline development** - Works without AWS connectivity
+
+### Important Limitations
+
+⚠️ **Development ONLY** - Not for production
+⚠️ **Licensing change March 2026** - Account requirement coming
+⚠️ **Data loss on restart** - Unless volume persistence enabled
+
+### Setup Instructions
+
+See **[LOCALSTACK_INTEGRATION.md](./LOCALSTACK_INTEGRATION.md)** for:
+- Complete installation guide
+- NestJS backend configuration
+- Integration test examples
+- CI/CD pipeline setup
+- Troubleshooting
+
+### Environment Variables
+
+```env
+# .env.development
+AWS_ENDPOINT_URL=http://localhost:4566
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_ACCESS_KEY=test
+LOCALSTACK_ENABLED=true
+```
+
+### Commands
+
+```bash
+# Start LocalStack
+docker-compose up -d
+
+# View logs
+docker-compose logs -f localstack
+
+# Stop
+docker-compose stop
+
+# Reset everything
+docker-compose down -v
+```
+
+---
+
 ## Frontend Development
 
 ### Tech Stack (Frontend)
