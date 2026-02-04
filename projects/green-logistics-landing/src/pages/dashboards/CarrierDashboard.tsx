@@ -1,7 +1,7 @@
 import { MetricGrid } from '../../components/dashboard/MetricCard';
 import { FleetComparisonTable } from '../../components/dashboard/FleetComparisonTable';
 import { FilterBar } from '../../components/dashboard/FilterBar';
-import { TrendChart } from '../../components/dashboard/TrendChart';
+import { TrendChartEnhanced } from '../../components/dashboard/TrendChartEnhanced';
 import { carrierDashboardData } from '../../data/mockDashboard';
 
 export default function CarrierDashboard() {
@@ -85,10 +85,12 @@ export default function CarrierDashboard() {
       {/* Two Column Section */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Revenue Trend */}
-        <TrendChart
+        <TrendChartEnhanced
           title="수익 추이"
           subtitle="주간 매출액"
           data={revenue}
+          chartType="line"
+          color="#10b981"
         />
 
         {/* Premium Orders Pipeline */}

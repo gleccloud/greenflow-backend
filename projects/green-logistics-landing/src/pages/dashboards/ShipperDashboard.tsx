@@ -1,11 +1,26 @@
 import { MetricGrid } from '../../components/dashboard/MetricCard';
 import { FleetComparisonTable } from '../../components/dashboard/FleetComparisonTable';
 import { FilterBar } from '../../components/dashboard/FilterBar';
-import { TrendChart } from '../../components/dashboard/TrendChart';
+import { TrendChartEnhanced } from '../../components/dashboard/TrendChartEnhanced';
 import { shipperDashboardData } from '../../data/mockDashboard';
+import { useBidData } from '../../hooks/useBidData';
+import { useFleetData } from '../../hooks/useFleetData';
 
 export default function ShipperDashboard() {
-  const { metrics, fleets, recentBids, scope3Trend } = shipperDashboardData;
+  // Fetch bid data with API fallback to mock
+  const { bids: apiBids } = useBidData({
+    useMockData: import.meta.env.VITE_ENABLE_MOCK_DATA === 'true',
+  });
+
+  // Fetch fleet data with API fallback to mock
+  const { fleets: apiFleets } = useFleetData({
+    useMockData: import.meta.env.VITE_ENABLE_MOCK_DATA === 'true',
+  });
+
+  // Use API data if available, otherwise fall back to mock data
+  const { metrics, fleets: mockFleets, recentBids: mockRecentBids, scope3Trend } = shipperDashboardData;
+  const fleets = apiFleets.length > 0 ? apiFleets : mockFleets;
+  const recentBids = apiBids.length > 0 ? apiBids : mockRecentBids;
 
   const getBidStatusBadge = (status: string) => {
     const colors = {
@@ -83,10 +98,12 @@ export default function ShipperDashboard() {
       {/* Two Column Section */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Scope 3 Trend */}
-        <TrendChart
+        <TrendChartEnhanced
           title="Scope 3 추이"
           subtitle="월별 총 탄소배출량"
           data={scope3Trend}
+          chartType="bar"
+          color="#10b981"
         />
 
         {/* Recent Bids */}

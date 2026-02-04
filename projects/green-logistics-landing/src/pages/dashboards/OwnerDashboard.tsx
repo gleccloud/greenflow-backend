@@ -1,6 +1,6 @@
 import { MetricGrid } from '../../components/dashboard/MetricCard';
 import { FilterBar } from '../../components/dashboard/FilterBar';
-import { TrendChart } from '../../components/dashboard/TrendChart';
+import { TrendChartEnhanced } from '../../components/dashboard/TrendChartEnhanced';
 import { ownerDashboardData } from '../../data/mockDashboard';
 import { Zap, AlertCircle } from 'lucide-react';
 
@@ -130,10 +130,12 @@ export default function OwnerDashboard() {
       {/* Two Column Section */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Earnings Trend */}
-        <TrendChart
+        <TrendChartEnhanced
           title="주간 수익"
           subtitle="일별 수익액"
           data={earnings}
+          chartType="bar"
+          color="#10b981"
         />
 
         {/* Recent Sessions */}
