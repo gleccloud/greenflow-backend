@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node tests/e2e_smoke.mjs",
+    "test:e2e:dashboard": "node tests/e2e_dashboard.mjs",
+    "test:integration": "echo 'Integration tests with LocalStack (requires: docker-compose up -d)'",
+    "build:performance": "vite build --config vite.config.performance.ts",
+    "analyze": "vite build --analyze"
   },
   "dependencies": {
     "lucide-react": "^0.563.0",
