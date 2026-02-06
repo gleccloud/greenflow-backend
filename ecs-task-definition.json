@@ -1,0 +1,96 @@
+{
+  "family": "greenflow-backend",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "greenflow-api",
+      "image": "ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/glec-api:staging",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "NODE_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "DATABASE_HOST",
+          "value": "greenflow-staging-db.XXXXX.us-east-1.rds.amazonaws.com"
+        },
+        {
+          "name": "DATABASE_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "DATABASE_NAME",
+          "value": "greenflow_staging"
+        },
+        {
+          "name": "REDIS_HOST",
+          "value": "greenflow-staging-redis.XXXXX.ng.0001.use1.cache.amazonaws.com"
+        },
+        {
+          "name": "REDIS_PORT",
+          "value": "6379"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "info"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_USERNAME",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:greenflow/staging/db-username"
+        },
+        {
+          "name": "DATABASE_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:greenflow/staging/db-password"
+        },
+        {
+          "name": "JWT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:greenflow/staging/jwt-secret"
+        },
+        {
+          "name": "SENTRY_DSN",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:greenflow/staging/sentry-dsn"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/greenflow-staging",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/api/v2/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ],
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/greenflow-task-role",
+  "tags": [
+    {
+      "key": "Environment",
+      "value": "staging"
+    },
+    {
+      "key": "Project",
+      "value": "greenflow"
+    }
+  ]
+}

@@ -586,3 +586,109 @@ module.exports = {
 ---
 
 *Design system inspired by [ByteRover](https://byterover.dev) and modern SaaS landing pages.*
+
+---
+
+# 🎯 Project-Specific Context: GreenFlow Console Module
+
+## Critical Architecture Lesson (2026-02-05)
+
+### What We Learned
+The **API Console** is a **completely separate application** from the landing pages, not just another route. This requires:
+
+1. **Separate Build Outputs**: `dist-console/` and `dist-landing/`
+2. **Separate S3 Buckets**: `greenflow-console` and `greenflow-landing`
+3. **Window Flags Pattern**: Each index.html sets `window.__APP_TYPE__` and `window.__BLOCKED_ROUTES__`
+4. **Conditional Route Rendering**: React checks window flags to conditionally render routes
+
+### Why This Matters
+**Identity Separation**: Console is a developer tool (metrics, API keys, docs). Landing is a marketing site (personas, features, pricing). Mixing them breaks the mental model.
+
+### Backend Console Module Architecture
+
+**Status**: Design complete, implementation pending
+**Document**: `docs/CONSOLE_MODULE_ARCHITECTURE.md`
+
+The Console Module provides real-time API metrics and usage tracking:
+
+#### Key Endpoints
+```
+GET  /api/v2/console/metrics/summary?period=DAY
+GET  /api/v2/console/metrics/endpoints
+GET  /api/v2/console/metrics/quota
+GET  /api/v2/console/metrics/billing
+SSE  /api/v2/console/metrics/stream
+```
+
+#### Architecture Pattern: Modular Monolith
+```
+src/modules/console/
+├── controllers/    # HTTP endpoints + SSE streaming
+├── services/       # Business logic + caching
+├── entities/       # TypeORM entities (api_request_logs)
+├── dtos/           # Request/response types
+└── repositories/   # Custom queries
+```
+
+#### Database Strategy
+- **Time-series partitioning**: Monthly partitions on `api_request_logs`
+- **Indexes**: (user_id, created_at), (endpoint, created_at)
+- **Caching**: Redis with 5-10 min TTL for aggregated metrics
+- **Retention**: Auto-delete logs > 90 days
+
+#### Performance Targets
+- P95 response time: < 200ms
+- Cache hit rate: > 80%
+- SSE updates: Every 5 seconds
+- Database query time: < 100ms
+
+### Why Not Microservices (Yet)?
+**Current decision**: Modular Monolith (single NestJS app with modules)
+
+**Rationale**:
+- Early stage MVP/prototype
+- Strong coupling between features (Bid, Fleet, Order)
+- Small team (less operational overhead)
+- Easier to iterate and debug
+
+**When to consider microservices**:
+- Independent scaling needs (e.g., SSE service under heavy load)
+- Multiple teams working independently
+- Different tech stacks per service
+- Need strong failure isolation
+
+**Migration path**: Modular structure allows gradual extraction
+1. Start: Modular monolith with clear boundaries
+2. Later: Extract high-traffic modules (realtime, console) as separate services
+3. Final: Full microservices if scale demands
+
+### Mock API Server Pattern
+**Purpose**: Temporary fake API for frontend development when backend isn't ready
+
+**When to use**:
+- Backend endpoints don't exist yet (404s)
+- Need to iterate on UI/UX without backend dependencies
+- Demo/prototype scenarios
+
+**Our case**: Created `mock-api-server.mjs` (port 3001) because backend lacks `/console/metrics/*` endpoints. Once Console Module is implemented, switch apiClient.ts back to port 3000 and remove mock server.
+
+### Frontend Integration Checklist
+When Console Module goes live:
+1. ✅ Update `apiClient.ts`: Change `API_BASE_URL` from 3001 → 3000
+2. ✅ Rebuild: `npm run build` in green-logistics-landing
+3. ✅ Redeploy to S3: Sync `/tmp/dist-console` to LocalStack
+4. ✅ Test SSE streaming: Verify live updates work
+5. ✅ Remove mock server: Delete `mock-api-server.mjs` and its PID file
+6. ✅ Update docs: Remove references to mock API
+
+### Memory Notes for Future Sessions
+- **Console = Developer Tool**, not marketing site
+- **Always separate builds** for isolated apps
+- **Window flags** control route rendering at runtime
+- **Modular monolith** is the right pattern for MVP stage
+- **Mock API** is temporary - real backend implementation tracked in `CONSOLE_MODULE_ARCHITECTURE.md`
+
+---
+
+**Document Updated**: 2026-02-05
+**Next Console Milestone**: Implement Console Module backend (2-3 hours estimated)

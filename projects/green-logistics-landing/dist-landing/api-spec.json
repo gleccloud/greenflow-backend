@@ -1,0 +1,648 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "GreenFlow API",
+    "description": "API for green logistics platform - carbon-based procurement with GLEC Framework monitoring",
+    "version": "2.0.0",
+    "contact": {
+      "name": "GreenFlow Support",
+      "url": "https://greenflow.example.com/support",
+      "email": "support@greenflow.example.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v2",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.greenflow.example.com/api/v2",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "API Keys",
+      "description": "API Key management endpoints"
+    },
+    {
+      "name": "Logs",
+      "description": "Request logging and monitoring"
+    },
+    {
+      "name": "Metrics",
+      "description": "Performance metrics and statistics"
+    },
+    {
+      "name": "Bids",
+      "description": "Bid management for logistics services"
+    },
+    {
+      "name": "Proposals",
+      "description": "Proposal management for logistics services"
+    },
+    {
+      "name": "Fleets",
+      "description": "Fleet management and carbon intensity tracking"
+    }
+  ],
+  "paths": {
+    "/console/api-keys": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "List all API keys",
+        "description": "Retrieve all API keys for the current user",
+        "operationId": "listAPIKeys",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum number of records to return",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Number of records to skip",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/APIKey"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": ["API Keys"],
+        "summary": "Create new API key",
+        "description": "Generate a new API key with specified scopes",
+        "operationId": "createAPIKey",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "scopes"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Production API Key"
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["bids.read", "proposals.write"]
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/console/api-keys/{id}": {
+      "get": {
+        "tags": ["API Keys"],
+        "summary": "Get API key details",
+        "operationId": "getAPIKey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIKey"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": ["API Keys"],
+        "summary": "Revoke API key",
+        "operationId": "revokeAPIKey",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API key revoked successfully"
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/console/logs": {
+      "get": {
+        "tags": ["Logs"],
+        "summary": "List API request logs",
+        "operationId": "listLogs",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["SUCCESS", "FAILED"]
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/APILog"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/console/metrics/summary": {
+      "get": {
+        "tags": ["Metrics"],
+        "summary": "Get metrics summary",
+        "operationId": "getMetricsSummary",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["DAY", "WEEK", "MONTH"],
+              "default": "DAY"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Metrics summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsSummary"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/bids": {
+      "get": {
+        "tags": ["Bids"],
+        "summary": "List logistics bids",
+        "description": "Retrieve all available bids for freight services",
+        "operationId": "listBids",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["OPEN", "CLOSED", "AWARDED"]
+            }
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of bids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Bid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/fleets": {
+      "get": {
+        "tags": ["Fleets"],
+        "summary": "List available fleets",
+        "description": "Retrieve all fleets with their carbon intensity grades (GLEC Framework based)",
+        "operationId": "listFleets",
+        "parameters": [
+          {
+            "name": "grade",
+            "in": "query",
+            "description": "Carbon intensity grade (Grade 1: Real measurement, Grade 2: Modeling)",
+            "schema": {
+              "type": "string",
+              "enum": ["GRADE_1", "GRADE_2", "GRADE_3"]
+            }
+          },
+          {
+            "name": "vehicleType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["truck", "van", "ship", "train"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of fleets with carbon intensity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Fleet"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "APIKey": {
+        "type": "object",
+        "required": ["id", "name", "status"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1"
+          },
+          "name": {
+            "type": "string",
+            "example": "Production API Key"
+          },
+          "keyPrefix": {
+            "type": "string",
+            "example": "glec_prod_a1b2c3d4e5f6g7h8"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ACTIVE", "REVOKED"],
+            "example": "ACTIVE"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "granted": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "rateLimit": {
+            "type": "object",
+            "properties": {
+              "requestsPerSecond": {
+                "type": "integer"
+              },
+              "requestsPerDay": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "APILog": {
+        "type": "object",
+        "required": ["id", "timestamp", "method", "endpoint"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "method": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "DELETE"],
+            "example": "GET"
+          },
+          "endpoint": {
+            "type": "string",
+            "example": "/api/v2/bids"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["SUCCESS", "FAILED"],
+            "example": "SUCCESS"
+          },
+          "statusCode": {
+            "type": "integer",
+            "example": 200
+          },
+          "duration": {
+            "type": "integer",
+            "description": "Response time in milliseconds",
+            "example": 145
+          },
+          "requestSize": {
+            "type": "integer",
+            "example": 256
+          },
+          "responseSize": {
+            "type": "integer",
+            "example": 4521
+          }
+        }
+      },
+      "MetricsSummary": {
+        "type": "object",
+        "properties": {
+          "totalRequests": {
+            "type": "integer",
+            "example": 12453
+          },
+          "successRate": {
+            "type": "number",
+            "format": "float",
+            "example": 99.8
+          },
+          "averageResponseTime": {
+            "type": "integer",
+            "example": 142
+          },
+          "totalErrorCount": {
+            "type": "integer",
+            "example": 25
+          },
+          "period": {
+            "type": "string",
+            "enum": ["DAY", "WEEK", "MONTH"],
+            "example": "DAY"
+          }
+        }
+      },
+      "Bid": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string",
+            "description": "Departure location"
+          },
+          "destination": {
+            "type": "string",
+            "description": "Destination location"
+          },
+          "cargoWeight": {
+            "type": "number",
+            "description": "Weight in tonnes"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["OPEN", "CLOSED", "AWARDED"]
+          },
+          "proposalCount": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Fleet": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "string",
+            "enum": ["truck", "van", "ship", "train"]
+          },
+          "carbonIntensity": {
+            "type": "number",
+            "description": "gCO₂e/t·km (GLEC Framework based)",
+            "example": 85.5
+          },
+          "grade": {
+            "type": "string",
+            "enum": ["GRADE_1", "GRADE_2", "GRADE_3"],
+            "description": "Grade 1: Real measurement (ISO-14083), Grade 2: Modeling/estimation, Grade 3: Default values"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "description": "Cost per tonne"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

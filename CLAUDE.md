@@ -236,6 +236,13 @@ curl http://localhost:3000/metrics
    - Priority-based execution
    - Guaranteed delivery with retries
 
+5. **Console Metrics API** (`/api/v2/console/metrics/*`) 🆕
+   - API usage tracking and analytics
+   - Real-time metrics via SSE
+   - Quota management and billing
+   - Performance monitoring
+   - See [CONSOLE_MODULE_ARCHITECTURE.md](./docs/CONSOLE_MODULE_ARCHITECTURE.md) for details
+
 ### Backend Project Structure (Phase 0)
 
 ```
@@ -249,6 +256,7 @@ glec-api-backend/
 │   │   ├── dispatch/      # Dispatch optimization
 │   │   ├── realtime/      # Real-time processing
 │   │   ├── jobs/          # Background jobs
+│   │   ├── console/       # 🆕 Console metrics & API usage tracking
 │   │   └── admin/         # Admin features
 │   ├── common/
 │   │   ├── middleware/    # HTTP middleware
@@ -283,6 +291,7 @@ glec-api-backend/
 3. **openapi.yaml** - API specification
 4. **BACKEND_TECH_STACK_2026.md** - Technology selection rationale
 5. **한국_화물운송_시장_...보고서.md** - Market context
+6. **docs/CONSOLE_MODULE_ARCHITECTURE.md** 🆕 - Console API implementation guide
 
 ### For Operations/DevOps
 
@@ -404,6 +413,7 @@ npm run dev
 - `PROJECT_SPEC.md` - Feature requirements
 - `TODO.md` - Tasks & roadmap (Korean)
 - `AGENTS.md` - Agent system documentation
+- `docs/CONSOLE_MODULE_ARCHITECTURE.md` 🆕 - Console API implementation guide
 
 ---
 
@@ -460,8 +470,9 @@ If `.git/config` doesn't have `remote.origin` configured:
 
 ---
 
-**Last Updated**: 2026-02-04 by Claude Code
+**Last Updated**: 2026-02-05 by Claude Code
 **Architecture Design Status**: ✅ COMPLETE & APPROVED FOR DEVELOPMENT
-**Frontend Status**: 🔄 IN PROGRESS
-**Backend Status**: 📋 PHASE 0 READY (awaiting initiation)
+**Frontend Status**: 🔄 IN PROGRESS (API Console + Landing Pages)
+**Backend Status**: 🔄 IN PROGRESS (Console Module implementation pending)
+**Console Module Design**: ✅ COMPLETE (see docs/CONSOLE_MODULE_ARCHITECTURE.md)
 **Next Review**: 2026-02-18 (post Phase 0)

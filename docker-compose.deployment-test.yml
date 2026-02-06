@@ -5,36 +5,36 @@ version: '3.9'
 # 프로덕션 배포 전 전체 시스템 테스트용
 
 services:
-  # LocalStack: AWS 서비스 에뮬레이션
-  localstack:
-    image: localstack/localstack:latest
-    container_name: greenflow-localstack
-    ports:
-      - "4566:4566"  # LocalStack 통합 엔드포인트
-      - "4571:4571"  # 대체 포트
-    environment:
-      # 활성화할 AWS 서비스
-      SERVICES: s3,sqs,sns,lambda,rds,elasticache,cloudwatch,cloudformation
-      DEBUG: 1
-      DATA_DIR: /tmp/localstack/data
-      AWS_REGION: us-east-1
-      DOCKER_HOST: unix:///var/run/docker.sock
-    volumes:
-      - localstack-data:/tmp/localstack/data
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./scripts/localstack-init.sh:/docker-entrypoint-initaws.d/init-aws.sh:ro
-    healthcheck:
-      test:
-        - CMD
-        - awslocal
-        - kinesis
-        - list-streams
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - greenflow-network
+  # LocalStack: AWS 서비스 에뮬레이션 (선택사항)
+  # localstack:
+  #   image: localstack/localstack:latest
+  #   container_name: greenflow-localstack
+  #   ports:
+  #     - "4566:4566"  # LocalStack 통합 엔드포인트
+  #     - "4571:4571"  # 대체 포트
+  #   environment:
+  #     # 활성화할 AWS 서비스
+  #     SERVICES: s3,sqs,sns,lambda,rds,elasticache,cloudwatch,cloudformation
+  #     DEBUG: 1
+  #     DATA_DIR: /tmp/localstack/data
+  #     AWS_REGION: us-east-1
+  #     DOCKER_HOST: unix:///var/run/docker.sock
+  #   volumes:
+  #     - localstack-data:/tmp/localstack/data
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #     - ./scripts/localstack-init.sh:/docker-entrypoint-initaws.d/init-aws.sh:ro
+  #   healthcheck:
+  #     test:
+  #       - CMD
+  #       - awslocal
+  #       - kinesis
+  #       - list-streams
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   networks:
+  #     - greenflow-network
 
   # PostgreSQL: 주 데이터베이스
   postgres:
@@ -46,7 +46,6 @@ services:
       POSTGRES_DB: glec_dev
       POSTGRES_USER: glec_user
       POSTGRES_PASSWORD: glec_pass
-      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=pgvector"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -91,8 +90,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      localstack:
-        condition: service_healthy
     environment:
       # Node.js
       NODE_ENV: test
@@ -116,7 +113,7 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
-      LOCALSTACK_ENABLED: "true"
+      LOCALSTACK_ENABLED: "false"
 
       # 서비스 구성
       API_PORT: 3000

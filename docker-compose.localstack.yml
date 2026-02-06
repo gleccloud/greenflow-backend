@@ -1,0 +1,321 @@
+###############################################################################
+# GreenFlow LocalStack 기반 완전 로컬 배포 환경
+# 용도: AWS 서비스 에뮬레이션으로 로컬에서 완전히 테스트 가능
+###############################################################################
+
+services:
+  # LocalStack: AWS 서비스 에뮬레이션
+  localstack:
+    image: localstack/localstack:latest
+    container_name: greenflow-localstack
+    ports:
+      - "4566:4566"     # LocalStack 통합 엔드포인트 (모든 AWS 서비스)
+      - "4571:4571"     # 대체 포트
+      - "8080:8080"     # LocalStack Web UI
+    environment:
+      # 활성화할 AWS 서비스 (모두 활성화)
+      SERVICES: >
+        s3,
+        sqs,
+        sns,
+        lambda,
+        rds,
+        elasticache,
+        cloudwatch,
+        cloudformation,
+        ecs,
+        ecr,
+        ec2,
+        iam,
+        logs,
+        kms,
+        dynamodb,
+        secretsmanager
+
+      # LocalStack 설정
+      DEBUG: 0
+      DOCKER_HOST: unix:///var/run/docker.sock
+      AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+
+      # LocalStack Pro 라이센스 (선택사항)
+      # LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN}
+
+      # Lambda Docker 지원
+      LAMBDA_DOCKER_NETWORK: greenflow-network
+
+      # RDS 지원
+      RDS_ENDPOINT_STRATEGY: path
+
+      # 로깅
+      MAIN_CONTAINER_LOG_LEVEL: INFO
+
+    volumes:
+      # Docker 소켓 (Lambda 실행용)
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    networks:
+      - greenflow-network
+
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - awslocal s3 ls
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # PostgreSQL (로컬 개발)
+  postgres:
+    image: postgres:17-alpine
+    container_name: greenflow-postgres
+    environment:
+      POSTGRES_USER: greenflow_user
+      POSTGRES_PASSWORD: greenflow_password
+      POSTGRES_DB: greenflow_staging
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - greenflow-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U greenflow_user
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (로컬 개발)
+  redis:
+    image: redis:7-alpine
+    container_name: greenflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - greenflow-network
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 백엔드 API (NestJS)
+  backend:
+    build:
+      context: ./projects/glec-api-backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: greenflow-backend
+    ports:
+      - "3000:3000"
+    environment:
+      # Node 환경
+      NODE_ENV: development
+      LOG_LEVEL: debug
+
+      # 데이터베이스 (로컬 PostgreSQL)
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: greenflow_user
+      DATABASE_PASSWORD: greenflow_password
+      DATABASE_NAME: greenflow_staging
+
+      # Redis (로컬)
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # LocalStack AWS 설정
+      AWS_ENDPOINT_URL: http://localstack:4566
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      LOCALSTACK_ENABLED: "true"
+
+      # LocalStack 서비스 엔드포인트
+      S3_ENDPOINT: http://localstack:4566
+      DYNAMODB_ENDPOINT: http://localstack:4566
+      SQS_ENDPOINT: http://localstack:4566
+      SNS_ENDPOINT: http://localstack:4566
+      LAMBDA_ENDPOINT: http://localstack:4566
+      SECRETSMANAGER_ENDPOINT: http://localstack:4566
+
+      # S3 설정
+      S3_BUCKET: greenflow-dev
+      S3_REGION: us-east-1
+
+      # API 설정
+      API_PORT: 3000
+      API_PREFIX: /api/v2
+      CORS_ORIGIN: http://localhost:5173
+
+      # JWT
+      JWT_SECRET: test-jwt-secret-key-change-in-production
+      JWT_EXPIRY: 24h
+
+      # Sentry (로컬에서는 disabled)
+      SENTRY_ENABLED: "false"
+
+      # BullMQ 설정
+      BULLMQ_DEFAULT_QUEUE: jobs
+      BULLMQ_LOG_LEVEL: debug
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+    volumes:
+      - ./projects/glec-api-backend/src:/app/src
+
+    networks:
+      - greenflow-network
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/api/v2/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 프론트엔드 (Vite)
+  frontend:
+    build:
+      context: ./projects/green-logistics-landing
+      dockerfile: Dockerfile
+      target: development
+    container_name: greenflow-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      NODE_ENV: development
+      VITE_API_BASE_URL: http://localhost:3000/api/v2
+      VITE_GA_MEASUREMENT_ID: G-LOCAL_TESTING
+      VITE_SENTRY_ENABLED: "false"
+
+    depends_on:
+      - backend
+
+    networks:
+      - greenflow-network
+
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:5173/
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # pgAdmin (PostgreSQL 관리)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: greenflow-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@greenflow.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - greenflow-network
+
+  # Prometheus (메트릭 수집)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: greenflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - greenflow-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:9090/-/healthy
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana (시각화)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: greenflow-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - greenflow-network
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/api/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Commander (Redis 관리)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: greenflow-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - greenflow-network
+
+# 네트워크
+networks:
+  greenflow-network:
+    driver: bridge
+
+# 볼륨
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
