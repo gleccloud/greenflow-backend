@@ -1,0 +1,1052 @@
+{
+  "config": {
+    "configFile": "/Users/kevin/openclaw-workspace/playwright.config.mjs",
+    "rootDir": "/Users/kevin/openclaw-workspace/tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/kevin/openclaw-workspace/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/kevin/openclaw-workspace/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*e2e*.spec.mjs"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "e2e-localstack-validation.spec.mjs",
+      "file": "e2e-localstack-validation.spec.mjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "LocalStack Deployment Validation",
+          "file": "e2e-localstack-validation.spec.mjs",
+          "line": 37,
+          "column": 6,
+          "specs": [],
+          "suites": [
+            {
+              "title": "1. Backend API Validation",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 39,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "1.1 Health endpoint should return OK",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 333,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Backend health check passed: { status: \u001b[32m'ok'\u001b[39m, timestamp: \u001b[32m'2026-02-06T01:17:49.429Z'\u001b[39m, version: \u001b[32m'v2'\u001b[39m }\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:49.102Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-e22a6976ff9a8fab2b7c",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 41,
+                  "column": 5
+                },
+                {
+                  "title": "1.2 Console API metrics endpoint (unauthorized)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 10,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Console API requires authentication: API key is missing. Please provide X-API-Key header.\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:49.446Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-0f41d2429740e4673689",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 53,
+                  "column": 5
+                },
+                {
+                  "title": "1.3 Console API with demo key (if demo mode enabled)",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 14,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "⚠️ Backend error (database not fully configured yet)\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:49.462Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-fc0b02e2459ec80a5522",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 66,
+                  "column": 5
+                },
+                {
+                  "title": "1.4 API responds within acceptable time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 11,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ API response time: 2ms\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:49.486Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-08fa549422475226a19c",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 91,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "2. Frontend Validation",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 103,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "2.1 Landing page loads successfully",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 955,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Landing page loaded: green-logistics-landing\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:49.505Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-e15c374d20c0e002d044",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 105,
+                  "column": 5
+                },
+                {
+                  "title": "2.2 Gate page navigation",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 398,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Gate page content visible\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:50.799Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-b235842987b6cce9d22c",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 118,
+                  "column": 5
+                },
+                {
+                  "title": "2.3 Route navigation works",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1958,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Route /shipper accessible\n"
+                            },
+                            {
+                              "text": "✅ Route /carrier accessible\n"
+                            },
+                            {
+                              "text": "✅ Route /owner accessible\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:51.204Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-87e44ab594b1bfe696a6",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 128,
+                  "column": 5
+                },
+                {
+                  "title": "2.4 Frontend build assets loaded",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 368,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Frontend assets loaded via Vite dev server\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:53.171Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-bd5ab4616b68c562d8b5",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 146,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "3. LocalStack AWS Resources",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 160,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "3.1 S3 buckets exist",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 590,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ S3 bucket exists: greenflow-dev\n"
+                            },
+                            {
+                              "text": "✅ S3 bucket exists: greenflow-uploads\n"
+                            },
+                            {
+                              "text": "✅ S3 bucket exists: greenflow-logs\n"
+                            },
+                            {
+                              "text": "✅ S3 bucket exists: greenflow-backups\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:53.545Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-e8ca2e1b1e7f72012b62",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 162,
+                  "column": 5
+                },
+                {
+                  "title": "3.2 DynamoDB tables exist",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 376,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ DynamoDB table exists: greenflow-user-preferences\n"
+                            },
+                            {
+                              "text": "✅ DynamoDB table exists: greenflow-audit-logs\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:54.143Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-09a5a68d933fa1c64def",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 178,
+                  "column": 5
+                },
+                {
+                  "title": "3.3 SQS queues exist",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 343,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ SQS queue exists: greenflow-notifications\n"
+                            },
+                            {
+                              "text": "✅ SQS queue exists: greenflow-order-processing\n"
+                            },
+                            {
+                              "text": "✅ SQS queue exists: greenflow-email-sending\n"
+                            },
+                            {
+                              "text": "✅ SQS queue exists: greenflow-analytics\n"
+                            },
+                            {
+                              "text": "✅ SQS queue exists: greenflow-dlq\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:54.527Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-ed904775eb7b87a8d577",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 193,
+                  "column": 5
+                },
+                {
+                  "title": "3.4 SNS topics exist",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 341,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "⚠️ No SNS topics found (topics may not have been created)\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:54.878Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-bf03d9475052d71d5421",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 212,
+                  "column": 5
+                },
+                {
+                  "title": "3.5 S3 bucket operations work",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 1100,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ S3 read/write operations successful\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:55.226Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-3dad48f16632032b60b6",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 235,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "4. Database Connectivity",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 258,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "4.1 PostgreSQL is accessible",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 136,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ PostgreSQL accepting connections\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.335Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-af1807f4bc60d2f9ccb3",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 260,
+                  "column": 5
+                },
+                {
+                  "title": "4.2 Redis is accessible",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 131,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Redis responding to PING\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.476Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-eb8e4dcedc3f76c5a1f5",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 269,
+                  "column": 5
+                },
+                {
+                  "title": "4.3 PostgreSQL database exists",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 137,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ PostgreSQL database operational\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.613Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-6911f45ecbf540074a2e",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 278,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "5. Service Health Checks",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 288,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "5.1 All containers are running",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 120,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "⚠️ Container greenflow-backend not found in ps output\n"
+                            },
+                            {
+                              "text": "✅ Container greenflow-frontend is running\n"
+                            },
+                            {
+                              "text": "✅ Container greenflow-localstack is running\n"
+                            },
+                            {
+                              "text": "✅ Container greenflow-postgres is running\n"
+                            },
+                            {
+                              "text": "✅ Container greenflow-redis is running\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.755Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-db72bbdb5beb80c3e485",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 290,
+                  "column": 5
+                },
+                {
+                  "title": "5.2 Container health status",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 100,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "greenflow-backend: No health check configured\n"
+                            },
+                            {
+                              "text": "greenflow-frontend: healthy\n"
+                            },
+                            {
+                              "text": "greenflow-localstack: healthy\n"
+                            },
+                            {
+                              "text": "greenflow-postgres: healthy\n"
+                            },
+                            {
+                              "text": "greenflow-redis: healthy\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.882Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-b943a96abc609001d227",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 319,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "6. Integration Tests",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 349,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "6.1 Frontend can reach Backend API",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 467,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Frontend → Backend communication successful\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:56.990Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-9858b8caf7deaa9994b6",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 351,
+                  "column": 5
+                },
+                {
+                  "title": "6.2 End-to-end user flow simulation",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 895,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Step 1: Landed on homepage\n"
+                            },
+                            {
+                              "text": "✅ Step 2: Navigated to shipper page\n"
+                            },
+                            {
+                              "text": "✅ Step 3: Page content visible\n"
+                            },
+                            {
+                              "text": "✅ End-to-end flow completed successfully\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:57.467Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-3b8c547bb23f48cc2ee4",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 374,
+                  "column": 5
+                }
+              ]
+            },
+            {
+              "title": "7. Performance Tests",
+              "file": "e2e-localstack-validation.spec.mjs",
+              "line": 393,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "7.1 Backend API response time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 27,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ API performance: avg=2.4ms, min=1ms, max=4ms\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:58.370Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-52d024802678d8d345e2",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 395,
+                  "column": 5
+                },
+                {
+                  "title": "7.2 Frontend page load time",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 60000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "chromium",
+                      "projectName": "chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "passed",
+                          "duration": 745,
+                          "errors": [],
+                          "stdout": [
+                            {
+                              "text": "✅ Frontend load time: 572ms\n"
+                            }
+                          ],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-02-06T01:17:58.404Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "638ef94322e64c732756-c80ed5cd401fc72fc82d",
+                  "file": "e2e-localstack-validation.spec.mjs",
+                  "line": 413,
+                  "column": 5
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-02-06T01:17:48.471Z",
+    "duration": 10721.399,
+    "expected": 22,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
