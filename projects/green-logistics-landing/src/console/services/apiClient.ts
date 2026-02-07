@@ -3,8 +3,11 @@
  * Handles all HTTP requests to backend API
  */
 
-// Use Mock API server (port 3001) until backend implements console metrics endpoints
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api/v2';
+// Backend API server — production-grade integration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v2';
+
+// Demo API key for local development (32+ chars required by backend)
+const DEMO_API_KEY = import.meta.env.VITE_API_KEY || '550e8400e29b41d4a716446655440000';
 
 export interface ApiRequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -20,8 +23,8 @@ export interface ApiResponse<T> {
 }
 
 class ApiClient {
-  private getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
+  private getApiKey(): string {
+    return localStorage.getItem('api_key') || DEMO_API_KEY;
   }
 
   private buildUrl(endpoint: string, params?: Record<string, string | number | boolean>): string {
@@ -46,15 +49,12 @@ class ApiClient {
       params = {},
     } = options;
 
-    const token = this.getAuthToken();
+    const apiKey = this.getApiKey();
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
+      'X-API-Key': apiKey,
       ...headers,
     };
-
-    if (token) {
-      defaultHeaders.Authorization = `Bearer ${token}`;
-    }
 
     const url = this.buildUrl(endpoint, params);
 

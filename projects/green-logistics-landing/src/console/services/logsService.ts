@@ -69,7 +69,7 @@ export const logsService = {
 
     const response = await fetch(url.toString(), {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        'X-API-Key': localStorage.getItem('api_key') || import.meta.env.VITE_API_KEY || '550e8400e29b41d4a716446655440000',
       },
     });
 
@@ -80,9 +80,9 @@ export const logsService = {
    * Subscribe to real-time logs via Server-Sent Events
    */
   subscribeToLogs(onLog: (log: APILog) => void, onError?: (error: Error) => void) {
-    const token = localStorage.getItem('auth_token');
+    const apiKey = localStorage.getItem('api_key') || import.meta.env.VITE_API_KEY || '550e8400e29b41d4a716446655440000';
     const eventSource = new EventSource(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v2'}/console/logs/stream?token=${token}`
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v2'}/console/logs/stream?token=${apiKey}`
     );
 
     eventSource.onmessage = (event) => {

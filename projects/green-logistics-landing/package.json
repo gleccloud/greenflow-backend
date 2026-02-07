@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:split": "npm run build && node scripts/build-split.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:e2e": "node tests/e2e_smoke.mjs",

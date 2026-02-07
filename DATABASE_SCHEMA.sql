@@ -3,6 +3,20 @@
 -- PostgreSQL 17 Compatible
 -- ISO-14083 기반 녹색물류 입찰 플랫폼
 -- ============================================================================
+--
+-- ============================================================================
+-- 용어 사전 (Glossary) - 모든 설계 문서의 정식 용어
+-- ============================================================================
+-- Bid (입찰 공고)     : 화주사가 생성하는 운송 입찰 공고. CRUD + 상태 머신 관리.
+-- Proposal (투찰)     : 물류기업이 Bid에 응답하여 제출하는 가격/조건 제안.
+-- Order (운송 주문)   : 낙찰(Award) 후 생성되는 실제 운송 건. Shipment 포함.
+-- Shipment (배송 건)  : Order 내 개별 운송 건. 탄소배출 데이터의 최소 단위.
+-- Fleet (차량군)      : 운송사가 보유한 차량 집합. EI 데이터 보유 단위.
+-- EI (탄소배출집약도)  : Emission Intensity. gCO₂e/t·km 단위.
+-- Score (평가 점수)   : 0.0000~1.0000 범위. 표시 시 ×100 = 백분율.
+--   - score_breakdown  : {"price": 0.452, "leadtime": 0.185, "ei": 0.283}
+-- Transport Mode      : TRUCK, SHIP, RAIL, AIR, MULTIMODAL (복합운송)
+-- ============================================================================
 
 -- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";       -- UUID generation
@@ -180,7 +194,7 @@ CREATE TABLE fleets (
     carbon_intensity_wtt DECIMAL(10, 2),          -- Well-to-Tank component
     carbon_intensity_ttw DECIMAL(10, 2),          -- Tank-to-Wheel component
     ei_grade ei_grade DEFAULT 'NOT_VERIFIED',
-    ei_confidence DECIMAL(5, 4),                  -- 신뢰도 (0.0000 ~ 1.0000)
+    ei_confidence DECIMAL(5, 4) CHECK (ei_confidence >= 0 AND ei_confidence <= 1),  -- 신뢰도 (0.0000 ~ 1.0000)
 
     -- Certification
     iso_14083_certified BOOLEAN DEFAULT FALSE,
@@ -285,9 +299,10 @@ CREATE TABLE bids (
 
     -- Bidding Parameters
     max_price DECIMAL(15, 2),                     -- 최대 예산
-    ei_weight_percentage DECIMAL(5, 2) DEFAULT 30.00,  -- EI 가중치 (%)
-    price_weight_percentage DECIMAL(5, 2) DEFAULT 50.00,
-    leadtime_weight_percentage DECIMAL(5, 2) DEFAULT 20.00,
+    ei_weight_percentage DECIMAL(5, 2) DEFAULT 30.00 CHECK (ei_weight_percentage >= 0 AND ei_weight_percentage <= 100),
+    price_weight_percentage DECIMAL(5, 2) DEFAULT 50.00 CHECK (price_weight_percentage >= 0 AND price_weight_percentage <= 100),
+    leadtime_weight_percentage DECIMAL(5, 2) DEFAULT 20.00 CHECK (leadtime_weight_percentage >= 0 AND leadtime_weight_percentage <= 100),
+    CONSTRAINT chk_weight_sum CHECK (ei_weight_percentage + price_weight_percentage + leadtime_weight_percentage = 100.00),
 
     -- Status & Lifecycle
     status bid_status DEFAULT 'DRAFT',
@@ -323,8 +338,8 @@ CREATE TABLE proposals (
     fleet_ei_grade ei_grade,
 
     -- Scoring (API 계산 결과)
-    score DECIMAL(8, 4),                          -- 0.0000 ~ 100.0000
-    score_breakdown JSONB,                        -- {"price": 45.2, "leadtime": 18.5, "ei": 28.3}
+    score DECIMAL(8, 4) CHECK (score >= 0 AND score <= 1),  -- 0.0000 ~ 1.0000 (정규화된 점수)
+    score_breakdown JSONB,                        -- {"price": 0.452, "leadtime": 0.185, "ei": 0.283}
     rank INTEGER,                                 -- Ranking among all proposals for this bid
 
     -- Status
@@ -813,12 +828,12 @@ BEGIN
     v_leadtime_norm := CASE WHEN v_max_leadtime > 0 THEN 1 - (p_estimated_leadtime_hours::DECIMAL / v_max_leadtime) ELSE 0 END;
     v_ei_norm := CASE WHEN v_max_ei > 0 THEN 1 - (p_fleet_ei / v_max_ei) ELSE 0 END;
 
-    -- Calculate weighted scores
-    v_price_score := v_price_norm * v_bid.price_weight_percentage;
-    v_leadtime_score := v_leadtime_norm * v_bid.leadtime_weight_percentage;
-    v_ei_score := v_ei_norm * v_bid.ei_weight_percentage;
+    -- Calculate weighted scores (weight_percentage / 100 → 0~1 decimal)
+    v_price_score := v_price_norm * (v_bid.price_weight_percentage / 100.0);
+    v_leadtime_score := v_leadtime_norm * (v_bid.leadtime_weight_percentage / 100.0);
+    v_ei_score := v_ei_norm * (v_bid.ei_weight_percentage / 100.0);
 
-    -- Total score (0-100)
+    -- Total score (0.0000 ~ 1.0000)
     v_total_score := v_price_score + v_leadtime_score + v_ei_score;
 
     RETURN QUERY SELECT
@@ -832,6 +847,358 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
+-- NEW ENUM TYPES (Phase 1 추가)
+-- ============================================================================
+
+-- 운송 수단 유형 (다중 모달 지원)
+CREATE TYPE transport_mode AS ENUM (
+    'TRUCK',                -- 도로 운송 (트럭)
+    'SHIP',                 -- 해운 (컨테이너선, 벌크선 등)
+    'RAIL',                 -- 철도 운송
+    'AIR',                  -- 항공 운송
+    'INLAND_WATERWAY',      -- 내륙 수운
+    'MULTIMODAL'            -- 복합 운송
+);
+
+-- 배송 건(Shipment) 상태
+CREATE TYPE shipment_status AS ENUM (
+    'CREATED',              -- 생성됨
+    'PICKED_UP',            -- 픽업 완료
+    'IN_TRANSIT',           -- 운송 중
+    'AT_HUB',               -- 허브 도착 (복합운송 환적)
+    'OUT_FOR_DELIVERY',     -- 배송 출발
+    'DELIVERED',            -- 배송 완료
+    'FAILED',               -- 배송 실패
+    'RETURNED'              -- 반송
+);
+
+-- Webhook 이벤트 유형
+CREATE TYPE webhook_event_type AS ENUM (
+    'bid.created',
+    'bid.updated',
+    'bid.awarded',
+    'bid.cancelled',
+    'proposal.submitted',
+    'proposal.accepted',
+    'proposal.rejected',
+    'order.created',
+    'order.status_changed',
+    'shipment.status_changed',
+    'shipment.carbon_recorded',
+    'carbon.report_ready',
+    'fleet.ei_updated'
+);
+
+-- 운송 상품 등급
+CREATE TYPE product_tier AS ENUM (
+    'PREMIUM_GREEN',        -- 프리미엄 저탄소 (Grade 1 Fleet만)
+    'STANDARD_GREEN',       -- 표준 녹색 (Grade 1-2 Fleet)
+    'ECONOMY',              -- 일반 운송 (모든 Grade)
+    'CUSTOM'                -- 커스텀 구성
+);
+
+-- ============================================================================
+-- NEW TABLES (Phase 1 추가 — 사용자 요구사항 GAP 해소)
+-- ============================================================================
+
+-- -----------------------------------------------
+-- Shipments: 개별 배송 건 (Order 내 실제 운송 단위)
+-- 탄소배출 데이터의 최소 측정 단위
+-- -----------------------------------------------
+CREATE TABLE shipments (
+    shipment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Relations
+    order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
+    fleet_id UUID REFERENCES fleets(fleet_id),
+    driver_id UUID REFERENCES users(user_id),
+
+    -- Route
+    origin_address TEXT NOT NULL,
+    origin_lat DECIMAL(9, 6),
+    origin_lng DECIMAL(9, 6),
+    destination_address TEXT NOT NULL,
+    destination_lat DECIMAL(9, 6),
+    destination_lng DECIMAL(9, 6),
+    actual_distance_km DECIMAL(10, 2),
+
+    -- Cargo
+    cargo_weight_kg DECIMAL(10, 2) NOT NULL CHECK (cargo_weight_kg > 0),
+    cargo_volume_cbm DECIMAL(10, 2),
+
+    -- Transport Mode
+    transport_mode transport_mode NOT NULL DEFAULT 'TRUCK',
+    vehicle_id VARCHAR(50),              -- 차량번호
+    vessel_imo VARCHAR(20),              -- 선박 IMO 번호 (해운)
+    flight_number VARCHAR(20),           -- 항공편 번호
+
+    -- Status & Timing
+    status shipment_status DEFAULT 'CREATED',
+    picked_up_at TIMESTAMP WITH TIME ZONE,
+    delivered_at TIMESTAMP WITH TIME ZONE,
+
+    -- Metadata
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_shipments_order ON shipments(order_id);
+CREATE INDEX idx_shipments_fleet ON shipments(fleet_id);
+CREATE INDEX idx_shipments_status ON shipments(status);
+CREATE INDEX idx_shipments_mode ON shipments(transport_mode);
+
+-- -----------------------------------------------
+-- Carbon Records: 운송 건별 탄소배출 기록
+-- 데이터 무결성 보장 (서명 + 해시체인)
+-- -----------------------------------------------
+CREATE TABLE carbon_records (
+    record_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Relations
+    shipment_id UUID NOT NULL REFERENCES shipments(shipment_id) ON DELETE CASCADE,
+    fleet_id UUID NOT NULL REFERENCES fleets(fleet_id),
+    carrier_id UUID NOT NULL REFERENCES users(user_id),
+
+    -- Emission Data (GLEC Framework v3.0)
+    total_emissions_kg DECIMAL(12, 4) NOT NULL CHECK (total_emissions_kg >= 0),  -- 총 CO₂e (kg)
+    emissions_wtw DECIMAL(12, 4),        -- Well-to-Wheel 전체
+    emissions_wtt DECIMAL(12, 4),        -- Well-to-Tank (연료 생산)
+    emissions_ttw DECIMAL(12, 4),        -- Tank-to-Wheel (연료 소비)
+
+    -- EI at recording time
+    ei_value DECIMAL(10, 4) NOT NULL,    -- gCO₂e/t·km
+    ei_grade ei_grade NOT NULL,
+    transport_mode transport_mode NOT NULL,
+
+    -- Input data for calculation
+    distance_km DECIMAL(10, 2) NOT NULL CHECK (distance_km > 0),
+    cargo_weight_tonnes DECIMAL(10, 4) NOT NULL CHECK (cargo_weight_tonnes > 0),
+    fuel_consumed_liters DECIMAL(10, 2),
+    fuel_type fuel_type,
+    load_factor DECIMAL(5, 4) CHECK (load_factor >= 0 AND load_factor <= 1),
+    empty_running_factor DECIMAL(5, 4) CHECK (empty_running_factor >= 0 AND empty_running_factor <= 1),
+
+    -- Data Integrity
+    data_signature TEXT,                 -- 디지털 서명 (Ed25519 또는 ECDSA)
+    signature_algorithm VARCHAR(50),     -- 서명 알고리즘 명칭
+    data_hash VARCHAR(128) NOT NULL,     -- SHA-256 해시 (원본 데이터)
+    prev_record_hash VARCHAR(128),       -- 이전 레코드 해시 (해시 체인)
+    hash_chain_valid BOOLEAN DEFAULT TRUE,
+
+    -- Provenance
+    data_source VARCHAR(100) NOT NULL,   -- 'CARRIER_MANUAL', 'TELEMATICS', 'OBD', 'ESTIMATED'
+    recorded_by UUID NOT NULL REFERENCES users(user_id),
+    verified_at TIMESTAMP WITH TIME ZONE,
+    verified_by UUID REFERENCES users(user_id),
+
+    -- ISO-14083 Compliance
+    iso_14083_compliant BOOLEAN DEFAULT FALSE,
+    calculation_method VARCHAR(50),      -- 'GLEC_V3', 'ISO_14083', 'SFC_CERTIFIED'
+
+    -- Metadata
+    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_carbon_records_shipment ON carbon_records(shipment_id);
+CREATE INDEX idx_carbon_records_fleet ON carbon_records(fleet_id);
+CREATE INDEX idx_carbon_records_carrier ON carbon_records(carrier_id);
+CREATE INDEX idx_carbon_records_recorded_at ON carbon_records(recorded_at DESC);
+CREATE INDEX idx_carbon_records_hash_chain ON carbon_records(prev_record_hash);
+
+-- -----------------------------------------------
+-- Data Signatures: 데이터 무결성 서명 저장소
+-- 감사 추적 및 제3자 검증 지원
+-- -----------------------------------------------
+CREATE TABLE data_signatures (
+    signature_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- What was signed
+    entity_type VARCHAR(50) NOT NULL,    -- 'carbon_record', 'shipment', 'proposal', 'order'
+    entity_id UUID NOT NULL,
+
+    -- Signature
+    signature TEXT NOT NULL,             -- 디지털 서명 값
+    algorithm VARCHAR(50) NOT NULL DEFAULT 'Ed25519', -- 서명 알고리즘
+    public_key_id VARCHAR(128) NOT NULL, -- 서명자 공개키 식별자
+    key_fingerprint VARCHAR(64),         -- 공개키 핑거프린트
+
+    -- Hash Chain
+    data_hash VARCHAR(128) NOT NULL,     -- 서명 대상 데이터 해시
+    prev_signature_hash VARCHAR(128),    -- 이전 서명 해시 (체인 유지)
+    chain_index BIGINT,                  -- 해시 체인 내 순번
+
+    -- Verification
+    is_verified BOOLEAN DEFAULT FALSE,
+    verified_at TIMESTAMP WITH TIME ZONE,
+    verified_by VARCHAR(100),            -- 검증자 (시스템 또는 제3자)
+
+    -- Metadata
+    signed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    signer_id UUID NOT NULL REFERENCES users(user_id),
+    signer_role user_role NOT NULL
+);
+
+CREATE INDEX idx_data_signatures_entity ON data_signatures(entity_type, entity_id);
+CREATE INDEX idx_data_signatures_chain ON data_signatures(prev_signature_hash);
+CREATE UNIQUE INDEX idx_data_signatures_chain_index ON data_signatures(entity_type, chain_index);
+
+-- -----------------------------------------------
+-- Transport Products: EI별 운송 상품 구성
+-- 물류기업이 EI 등급별 서비스 패키지를 정의
+-- -----------------------------------------------
+CREATE TABLE transport_products (
+    product_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Owner
+    carrier_id UUID NOT NULL REFERENCES users(user_id),
+
+    -- Product definition
+    product_name VARCHAR(200) NOT NULL,
+    description TEXT,
+    tier product_tier NOT NULL DEFAULT 'ECONOMY',
+    transport_mode transport_mode NOT NULL DEFAULT 'TRUCK',
+
+    -- EI constraints
+    max_ei_value DECIMAL(10, 4),         -- 최대 허용 EI (이하만 이 상품에 해당)
+    guaranteed_ei_grade ei_grade,        -- 보장 EI 등급 (Grade 1/2/3)
+    eligible_fleet_ids UUID[],           -- 이 상품에 배정 가능한 Fleet ID 목록
+
+    -- Pricing
+    base_price_per_km DECIMAL(10, 2),    -- km당 기본 운임 (₩)
+    base_price_per_ton DECIMAL(10, 2),   -- 톤당 기본 운임 (₩)
+    green_premium_percentage DECIMAL(5, 2) DEFAULT 0, -- 녹색 프리미엄 (%)
+    carbon_offset_included BOOLEAN DEFAULT FALSE,
+
+    -- Availability
+    is_active BOOLEAN DEFAULT TRUE,
+    valid_from DATE,
+    valid_until DATE,
+    service_area JSONB,                  -- {"regions": ["서울", "경기"], "nationwide": false}
+
+    -- Performance Metrics
+    avg_delivery_hours INTEGER,
+    on_time_rate DECIMAL(5, 4) CHECK (on_time_rate >= 0 AND on_time_rate <= 1),
+
+    -- Metadata
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_transport_products_carrier ON transport_products(carrier_id);
+CREATE INDEX idx_transport_products_tier ON transport_products(tier);
+CREATE INDEX idx_transport_products_mode ON transport_products(transport_mode);
+CREATE INDEX idx_transport_products_active ON transport_products(is_active) WHERE is_active = TRUE;
+
+-- -----------------------------------------------
+-- Webhooks: 화주/물류 전산 시스템 연동
+-- 이벤트 기반 Push 데이터 전달
+-- -----------------------------------------------
+CREATE TABLE webhooks (
+    webhook_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Owner
+    owner_id UUID NOT NULL REFERENCES users(user_id),
+    owner_role user_role NOT NULL,
+
+    -- Configuration
+    url TEXT NOT NULL,                   -- 콜백 URL (HTTPS만 허용)
+    secret VARCHAR(256) NOT NULL,        -- HMAC 서명용 비밀키
+    events webhook_event_type[] NOT NULL, -- 구독 이벤트 목록
+
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    last_triggered_at TIMESTAMP WITH TIME ZONE,
+    consecutive_failures INTEGER DEFAULT 0,
+    max_retries INTEGER DEFAULT 5,
+
+    -- Headers
+    custom_headers JSONB,                -- {"Authorization": "Bearer xxx", ...}
+
+    -- Rate limiting
+    rate_limit_per_minute INTEGER DEFAULT 60,
+
+    -- Metadata
+    description VARCHAR(500),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_webhooks_owner ON webhooks(owner_id);
+CREATE INDEX idx_webhooks_active ON webhooks(is_active) WHERE is_active = TRUE;
+
+-- -----------------------------------------------
+-- Webhook Delivery Log: 웹훅 전달 이력
+-- 재시도 및 실패 추적
+-- -----------------------------------------------
+CREATE TABLE webhook_deliveries (
+    delivery_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    webhook_id UUID NOT NULL REFERENCES webhooks(webhook_id) ON DELETE CASCADE,
+    event_type webhook_event_type NOT NULL,
+
+    -- Payload
+    payload JSONB NOT NULL,
+
+    -- Delivery attempt
+    attempt_number INTEGER NOT NULL DEFAULT 1,
+    http_status INTEGER,
+    response_body TEXT,
+    response_time_ms INTEGER,
+
+    -- Status
+    delivered BOOLEAN DEFAULT FALSE,
+    failed_reason TEXT,
+
+    -- Timing
+    scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    delivered_at TIMESTAMP WITH TIME ZONE,
+    next_retry_at TIMESTAMP WITH TIME ZONE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_webhook_deliveries_webhook ON webhook_deliveries(webhook_id);
+CREATE INDEX idx_webhook_deliveries_pending ON webhook_deliveries(delivered, next_retry_at)
+    WHERE delivered = FALSE;
+
+-- -----------------------------------------------
+-- Multimodal Segments: 복합운송 구간별 정보
+-- Shipment가 MULTIMODAL일 때 구간 분리
+-- -----------------------------------------------
+CREATE TABLE multimodal_segments (
+    segment_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    shipment_id UUID NOT NULL REFERENCES shipments(shipment_id) ON DELETE CASCADE,
+    segment_order INTEGER NOT NULL,      -- 구간 순서 (1, 2, 3...)
+
+    -- Segment details
+    transport_mode transport_mode NOT NULL,
+    origin_address TEXT NOT NULL,
+    destination_address TEXT NOT NULL,
+    distance_km DECIMAL(10, 2) NOT NULL CHECK (distance_km > 0),
+
+    -- Fleet/Vehicle
+    fleet_id UUID REFERENCES fleets(fleet_id),
+    carrier_id UUID REFERENCES users(user_id),
+
+    -- EI for this segment
+    segment_ei DECIMAL(10, 4),           -- 이 구간의 EI (gCO₂e/t·km)
+    segment_emissions_kg DECIMAL(12, 4), -- 이 구간의 배출량 (kg CO₂e)
+
+    -- Timing
+    estimated_departure TIMESTAMP WITH TIME ZONE,
+    estimated_arrival TIMESTAMP WITH TIME ZONE,
+    actual_departure TIMESTAMP WITH TIME ZONE,
+    actual_arrival TIMESTAMP WITH TIME ZONE,
+
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_multimodal_segments_shipment ON multimodal_segments(shipment_id);
+CREATE UNIQUE INDEX idx_multimodal_segments_order ON multimodal_segments(shipment_id, segment_order);
+
+-- ============================================================================
 -- SECURITY & ROW LEVEL SECURITY (RLS)
 -- ============================================================================
 
@@ -841,6 +1208,10 @@ ALTER TABLE fleets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bids ENABLE ROW LEVEL SECURITY;
 ALTER TABLE proposals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shipments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE carbon_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhooks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transport_products ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies (examples - adjust based on authentication system)
 
@@ -903,6 +1274,57 @@ CREATE POLICY orders_select_policy ON orders
         OR carrier_id = current_setting('app.current_user_id', TRUE)::UUID
     );
 
+-- Shipments: Order 관계자만 조회 가능
+CREATE POLICY shipments_select_policy ON shipments
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM orders
+            WHERE orders.order_id = shipments.order_id
+            AND (orders.shipper_id = current_setting('app.current_user_id', TRUE)::UUID
+                 OR orders.carrier_id = current_setting('app.current_user_id', TRUE)::UUID)
+        )
+    );
+
+-- Carbon Records: 관련 운송사 또는 화주만 조회
+CREATE POLICY carbon_records_select_policy ON carbon_records
+    FOR SELECT
+    USING (
+        carrier_id = current_setting('app.current_user_id', TRUE)::UUID
+        OR EXISTS (
+            SELECT 1 FROM shipments s
+            JOIN orders o ON o.order_id = s.order_id
+            WHERE s.shipment_id = carbon_records.shipment_id
+            AND o.shipper_id = current_setting('app.current_user_id', TRUE)::UUID
+        )
+    );
+
+CREATE POLICY carbon_records_insert_policy ON carbon_records
+    FOR INSERT
+    WITH CHECK (carrier_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+-- Webhooks: 소유자만 관리 가능
+CREATE POLICY webhooks_select_policy ON webhooks
+    FOR SELECT
+    USING (owner_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+CREATE POLICY webhooks_insert_policy ON webhooks
+    FOR INSERT
+    WITH CHECK (owner_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+CREATE POLICY webhooks_update_policy ON webhooks
+    FOR UPDATE
+    USING (owner_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+-- Transport Products: 소유 운송사만 관리, 모든 사용자 조회 가능
+CREATE POLICY transport_products_select_policy ON transport_products
+    FOR SELECT
+    USING (is_active = TRUE OR carrier_id = current_setting('app.current_user_id', TRUE)::UUID);
+
+CREATE POLICY transport_products_insert_policy ON transport_products
+    FOR INSERT
+    WITH CHECK (carrier_id = current_setting('app.current_user_id', TRUE)::UUID);
+
 -- ============================================================================
 -- SAMPLE DATA (Development/Testing)
 -- ============================================================================
@@ -948,6 +1370,12 @@ BEGIN
     VACUUM ANALYZE bids;
     VACUUM ANALYZE proposals;
     VACUUM ANALYZE orders;
+    VACUUM ANALYZE shipments;
+    VACUUM ANALYZE carbon_records;
+    VACUUM ANALYZE transport_products;
+    VACUUM ANALYZE webhooks;
+    VACUUM ANALYZE webhook_deliveries;
+    VACUUM ANALYZE multimodal_segments;
     VACUUM ANALYZE ei_history;
     VACUUM ANALYZE api_request_logs;
 END;
@@ -971,7 +1399,16 @@ COMMENT ON TABLE audit_logs IS '감사 로그 (모든 중요 변경사항 추적
 
 COMMENT ON COLUMN fleets.carbon_intensity IS 'GLEC Framework 기준 탄소배출집약도 (gCO₂e/t·km)';
 COMMENT ON COLUMN fleets.ei_grade IS 'ISO-14083 데이터 품질 등급 (Grade 1: 실측, Grade 2: 모델링)';
-COMMENT ON COLUMN proposals.score IS '입찰 평가 점수 (0-100): α×Price + β×Leadtime + γ×EI';
+COMMENT ON COLUMN proposals.score IS '입찰 평가 점수 (0.0~1.0): α×Price + β×Leadtime + γ×EI (표시 시 ×100)';
+
+-- New table comments
+COMMENT ON TABLE shipments IS '개별 배송 건: Order 내 실제 운송 단위, 탄소배출 측정 최소 단위';
+COMMENT ON TABLE carbon_records IS '운송 건별 탄소배출 기록: 디지털 서명 + 해시체인으로 무결성 보장';
+COMMENT ON TABLE data_signatures IS '데이터 무결성 서명: Ed25519 서명 + 해시체인 감사 추적';
+COMMENT ON TABLE transport_products IS 'EI별 운송 상품: 물류기업이 정의하는 탄소등급별 서비스 패키지';
+COMMENT ON TABLE webhooks IS '웹훅 설정: 화주/물류 전산시스템(ERP/TMS) 연동용 이벤트 Push';
+COMMENT ON TABLE webhook_deliveries IS '웹훅 전달 이력: 재시도, 실패 추적';
+COMMENT ON TABLE multimodal_segments IS '복합운송 구간: Shipment의 구간별 운송수단·거리·배출량 분리';
 
 -- ============================================================================
 -- END OF SCHEMA

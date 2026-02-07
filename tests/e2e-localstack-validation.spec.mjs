@@ -166,7 +166,9 @@ test.describe('LocalStack Deployment Validation', () => {
         'greenflow-dev',
         'greenflow-uploads',
         'greenflow-logs',
-        'greenflow-backups'
+        'greenflow-backups',
+        'greenflow-console',
+        'greenflow-landing'
       ];
 
       for (const bucket of expectedBuckets) {

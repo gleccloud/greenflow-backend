@@ -73,6 +73,8 @@ BUCKETS=(
   "greenflow-uploads"
   "greenflow-logs"
   "greenflow-backups"
+  "greenflow-console"
+  "greenflow-landing"
 )
 
 for BUCKET in "${BUCKETS[@]}"; do

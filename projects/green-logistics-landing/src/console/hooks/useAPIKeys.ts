@@ -87,6 +87,22 @@ export function useAPIKeys() {
     }
   }, [fetchKeys, page, setIsLoading, showNotification]);
 
+  // Update API key (name, scopes)
+  const updateKey = useCallback(async (id: string, updates: Partial<{ name: string; scopes: string[] }>) => {
+    try {
+      setIsLoading(true);
+      await apiKeyService.updateAPIKey(id, updates as Partial<import('../types/apiKey').APIKey>);
+      showNotification('success', 'API key updated successfully');
+      await fetchKeys(page);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update API key';
+      setError(message);
+      showNotification('error', message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchKeys, page, setIsLoading, showNotification]);
+
   // Delete API key
   const deleteKey = useCallback(async (id: string) => {
     try {
@@ -118,6 +134,7 @@ export function useAPIKeys() {
     setSelectedKey,
     fetchKeys,
     createKey,
+    updateKey,
     revokeKey,
     rotateKey,
     deleteKey,

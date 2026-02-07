@@ -25,8 +25,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 PROJECT_DIR="/Users/kevin/openclaw-workspace/projects/green-logistics-landing"
-DIST_CONSOLE="/tmp/dist-console"
-DIST_LANDING="/tmp/dist-landing"
+DIST_CONSOLE="$PROJECT_DIR/dist-console"
+DIST_LANDING="$PROJECT_DIR/dist-landing"
 AWS_ENDPOINT="http://localhost:4566"
 CONSOLE_BUCKET="greenflow-console"
 LANDING_BUCKET="greenflow-landing"
@@ -86,111 +86,33 @@ fi
 print_step "LocalStack check passed"
 
 ################################################################################
-# Phase 2: Build
+# Phase 2: Build Split Artifacts
 ################################################################################
 
-print_header "Phase 2: Build Project"
+print_header "Phase 2: Build Split Artifacts"
 
 cd "$PROJECT_DIR"
 print_step "Changed to project directory: $PROJECT_DIR"
 
-# Run build
-npm run build
-print_step "Build completed successfully"
+# Build base dist + split outputs (dist-console, dist-landing)
+npm run build:split
+print_step "Split build completed"
 
-# Check if dist directory exists
-if [ ! -d "dist" ]; then
-    print_error "Build failed: dist directory not found"
+if [ ! -f "$DIST_CONSOLE/index.html" ]; then
+    print_error "Console build not found: $DIST_CONSOLE/index.html"
     exit 1
 fi
-print_step "Distribution directory created"
+if [ ! -f "$DIST_LANDING/index.html" ]; then
+    print_error "Landing build not found: $DIST_LANDING/index.html"
+    exit 1
+fi
 
-################################################################################
-# Phase 3: Prepare Console Deployment
-################################################################################
+print_step "Console artifact ready: $DIST_CONSOLE"
+print_step "Landing artifact ready: $DIST_LANDING"
 
-print_header "Phase 3: Prepare Console Deployment"
-
-# Remove old console dist if it exists
-rm -rf "$DIST_CONSOLE"
-mkdir -p "$DIST_CONSOLE/assets"
-print_step "Console directory prepared: $DIST_CONSOLE"
-
-# Copy assets
-cp -r dist/assets/* "$DIST_CONSOLE/assets/"
-cp dist/api-spec.json "$DIST_CONSOLE/"
-cp dist/vite.svg "$DIST_CONSOLE/"
-print_step "Assets copied"
-
-# Create console index.html
-cat > "$DIST_CONSOLE/index.html" << 'EOF'
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GreenFlow API Console</title>
-  <script type="module">
-    window.__APP_TYPE__ = 'console';
-    window.__BLOCKED_ROUTES__ = ['/', '/shipper', '/carrier', '/owner'];
-    window.__CONSOLE_MODE__ = true;
-  </script>
-  <link rel="stylesheet" href="/assets/index-BN53RBvG.css">
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/assets/index-Dzm30dh2.js"></script>
-</body>
-</html>
-EOF
-print_step "Console index.html created with window flags"
-
-# Verify console size
 CONSOLE_SIZE=$(du -sh "$DIST_CONSOLE" | cut -f1)
-echo -e "${GREEN}  Console size: $CONSOLE_SIZE${NC}"
-
-################################################################################
-# Phase 4: Prepare Landing Deployment
-################################################################################
-
-print_header "Phase 4: Prepare Landing Deployment"
-
-# Remove old landing dist if it exists
-rm -rf "$DIST_LANDING"
-mkdir -p "$DIST_LANDING/assets"
-print_step "Landing directory prepared: $DIST_LANDING"
-
-# Copy assets
-cp -r dist/assets/* "$DIST_LANDING/assets/"
-cp dist/api-spec.json "$DIST_LANDING/"
-cp dist/vite.svg "$DIST_LANDING/"
-print_step "Assets copied"
-
-# Create landing index.html
-cat > "$DIST_LANDING/index.html" << 'EOF'
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GreenFlow - 녹색 물류 플랫폼</title>
-  <script type="module">
-    window.__APP_TYPE__ = 'landing';
-    window.__BLOCKED_ROUTES__ = ['/console'];
-    window.__CONSOLE_MODE__ = false;
-  </script>
-  <link rel="stylesheet" href="/assets/index-BN53RBvG.css">
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/assets/index-Dzm30dh2.js"></script>
-</body>
-</html>
-EOF
-print_step "Landing index.html created with window flags"
-
-# Verify landing size
 LANDING_SIZE=$(du -sh "$DIST_LANDING" | cut -f1)
+echo -e "${GREEN}  Console size: $CONSOLE_SIZE${NC}"
 echo -e "${GREEN}  Landing size: $LANDING_SIZE${NC}"
 
 ################################################################################

@@ -136,7 +136,7 @@ for i in {1..30}; do
 done
 
 echo "S3 버킷 생성..."
-for BUCKET in greenflow-dev greenflow-uploads greenflow-logs greenflow-backups; do
+for BUCKET in greenflow-dev greenflow-uploads greenflow-logs greenflow-backups greenflow-console greenflow-landing; do
   awslocal s3api create-bucket --bucket "$BUCKET" --region us-east-1 2>/dev/null || true
 done
 

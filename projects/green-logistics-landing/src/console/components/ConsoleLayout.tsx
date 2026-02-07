@@ -1,6 +1,6 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, LogOut, Settings, Key, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 const CONSOLE_NAV_ITEMS = [
   {
@@ -30,7 +30,7 @@ const CONSOLE_NAV_ITEMS = [
   },
   {
     path: '/console/integrations',
-    label: 'Integrations',
+    label: 'SDK & Integrations',
     icon: '🔗',
   },
   {
@@ -68,7 +68,28 @@ function NavItem({ item, isActive }: NavItemProps) {
 
 export function ConsoleLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const avatarMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    localStorage.removeItem('api_key');
+    window.location.href = '/';
+  };
+
+  // Close avatar dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (avatarMenuRef.current && !avatarMenuRef.current.contains(e.target as Node)) {
+        setAvatarMenuOpen(false);
+      }
+    };
+    if (avatarMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [avatarMenuOpen]);
 
   return (
     <div className="flex h-screen bg-slate-50">
@@ -108,11 +129,17 @@ export function ConsoleLayout() {
         <div className="border-t border-slate-200 p-4 space-y-2">
           {sidebarOpen && (
             <>
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+              <Link
+                to="/console/settings"
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
                 <Settings size={18} />
                 <span>Settings</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors">
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+              >
                 <LogOut size={18} />
                 <span>Sign Out</span>
               </button>
@@ -141,12 +168,55 @@ export function ConsoleLayout() {
 
           {/* Header Right Actions */}
           <div className="flex items-center gap-4">
-            <button className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+            <button
+              onClick={() => navigate('/console/logs')}
+              className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              title="View request logs"
+            >
               <span className="text-xl">🔔</span>
               <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
             </button>
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-sm cursor-pointer">
-              U
+
+            {/* User Avatar + Dropdown */}
+            <div className="relative" ref={avatarMenuRef}>
+              <button
+                onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+                className="flex items-center gap-2"
+              >
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  U
+                </div>
+                <ChevronDown size={14} className={`text-slate-400 transition-transform ${avatarMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {avatarMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                  <Link
+                    to="/console/settings"
+                    onClick={() => setAvatarMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Settings size={16} />
+                    Settings
+                  </Link>
+                  <Link
+                    to="/console/api-keys"
+                    onClick={() => setAvatarMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                  >
+                    <Key size={16} />
+                    API Keys
+                  </Link>
+                  <div className="border-t border-slate-200 my-1" />
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Sign Out
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

@@ -997,10 +997,10 @@ export class Proposal {
 
   // Scoring
   @Column('numeric', { precision: 8, scale: 4, nullable: true })
-  composite_score: number; // 0.0000 ~ 100.0000
+  composite_score: number; // 0.0000 ~ 1.0000 (정규화 점수, 표시 시 ×100)
 
   @Column('jsonb', { nullable: true })
-  score_breakdown: Record<string, number>; // {price: 45.2, leadtime: 18.5, ei: 28.3}
+  score_breakdown: Record<string, number>; // {price: 0.452, leadtime: 0.185, ei: 0.283}
 
   @Column({ nullable: true })
   rank: number;
@@ -1079,7 +1079,7 @@ export class BidEvaluationService {
       const leadtimeScore = leadtimeNorm * evaluationPolicy.weight_leadtime;
       const eiScore = eiNorm * evaluationPolicy.weight_ei * qualityGradeFactor;
 
-      const compositeScore = (priceScore + leadtimeScore + eiScore) * 100;
+      const compositeScore = priceScore + leadtimeScore + eiScore; // 0~1 범위 (표시 시 ×100)
 
       return {
         bid_id: bidId,

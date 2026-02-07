@@ -21,7 +21,7 @@ export const metricsService = {
    * Get endpoint metrics and performance data
    */
   async getEndpointMetrics() {
-    const response = await apiClient.get<EndpointMetrics[]>('/console/metrics/endpoints');
+    const response = await apiClient.get<EndpointMetrics[]>('/console/metrics/endpoints-detail');
     return response.data;
   },
 
@@ -29,7 +29,7 @@ export const metricsService = {
    * Get API quota information
    */
   async getQuotaInfo() {
-    const response = await apiClient.get<QuotaInfo>('/console/metrics/quota');
+    const response = await apiClient.get<QuotaInfo>('/console/metrics/quota-info');
     return response.data;
   },
 
@@ -45,9 +45,9 @@ export const metricsService = {
    * Subscribe to real-time metrics via Server-Sent Events
    */
   subscribeToMetrics(onMetrics: (metrics: MetricsSummary) => void, onError?: (error: Error) => void) {
-    const token = localStorage.getItem('auth_token');
+    const apiKey = localStorage.getItem('api_key') || import.meta.env.VITE_API_KEY || '550e8400e29b41d4a716446655440000';
     const eventSource = new EventSource(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v2'}/console/metrics/stream?token=${token}`
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v2'}/console/metrics/stream?token=${apiKey}`
     );
 
     eventSource.onmessage = (event) => {

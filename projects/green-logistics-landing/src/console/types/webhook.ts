@@ -4,16 +4,26 @@
 
 export type WebhookEvent =
   | 'bid.created'
-  | 'bid.updated'
+  | 'bid.published'
   | 'bid.closed'
-  | 'proposal.created'
+  | 'bid.awarded'
+  | 'bid.cancelled'
+  | 'bid.expired'
+  | 'proposal.submitted'
   | 'proposal.updated'
-  | 'proposal.awarded'
+  | 'proposal.withdrawn'
+  | 'proposal.accepted'
+  | 'proposal.rejected'
   | 'order.created'
-  | 'order.shipped'
+  | 'order.status_changed'
+  | 'order.confirmed'
+  | 'order.in_transit'
   | 'order.delivered'
-  | 'fleet.updated'
-  | 'api_key.rotated';
+  | 'order.cancelled'
+  | 'order.failed'
+  | 'fleet.ei_updated'
+  | 'carbon_record.created'
+  | 'evaluation.completed';
 
 export type WebhookStatus = 'ACTIVE' | 'INACTIVE' | 'DISABLED';
 

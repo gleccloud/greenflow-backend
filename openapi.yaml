@@ -253,8 +253,8 @@ paths:
     post:
       tags:
         - Dispatch
-      summary: Optimize Batch Dispatch
-      description: 다수 오더를 동시에 최적 배차 (AI 기반)
+      summary: "[Phase 2] Optimize Batch Dispatch"
+      description: "[Phase 2 구현 예정] 다수 오더를 동시에 최적 배차 (AI 기반). DB 테이블 dispatch_jobs 추가 필요."
       operationId: optimizeDispatch
       requestBody:
         required: true
@@ -548,7 +548,7 @@ components:
               type: boolean
         sort_by:
           type: string
-          enum: [ei_asc, ei_desc, price_asc, rating_desc]
+          enum: [ei_asc, ei_desc, price_asc, score_desc]
           default: ei_asc
         limit:
           type: integer
@@ -589,8 +589,6 @@ components:
                 type: string
               iso_14083_certified:
                 type: boolean
-              avg_rating:
-                type: number
 
     # Bid Evaluation Request
     BidEvaluationRequest:
